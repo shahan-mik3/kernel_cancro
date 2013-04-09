@@ -194,4 +194,6 @@ source "drivers/firmware/Kconfig"
 
 source "drivers/tspdrv/Kconfig"
 
+source "drivers/cpuquiet/Kconfig"
+
 endmenu
