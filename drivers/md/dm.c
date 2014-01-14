@@ -187,9 +187,6 @@ struct mapped_device {
 	/* kobject and completion */
 	struct dm_kobject_holder kobj_holder;
 
-	/* wait until the kobject is released */
-	struct completion kobj_completion;
-
 	/* zero-length flush that will be cloned and submitted to targets */
 	struct bio flush_bio;
 };
@@ -1908,7 +1905,6 @@ static struct mapped_device *alloc_dev(int minor)
 	INIT_WORK(&md->work, dm_wq_work);
 	init_waitqueue_head(&md->eventq);
 	init_completion(&md->kobj_holder.completion);
-	init_completion(&md->kobj_completion);
 
 	md->disk->major = _major;
 	md->disk->first_minor = minor;
@@ -2754,13 +2750,6 @@ struct mapped_device *dm_get_from_kobject(struct kobject *kobj)
 
 	dm_get(md);
 	return md;
-}
-
-struct completion *dm_get_completion_from_kobject(struct kobject *kobj)
-{
-	struct mapped_device *md = container_of(kobj, struct mapped_device, kobj);
-
-	return &md->kobj_completion;
 }
 
 int dm_suspended_md(struct mapped_device *md)
