@@ -77,7 +77,7 @@ module_param(override_phy_init, int, S_IRUGO|S_IWUSR);
 MODULE_PARM_DESC(override_phy_init, "Override HSPHY Init Seq");
 
 /* Enable Proprietary charger detection */
-static bool prop_chg_detect;
+static bool prop_chg_detect = true;
 module_param(prop_chg_detect, bool, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(prop_chg_detect, "Enable Proprietary charger detection");
 
@@ -1502,7 +1502,7 @@ static void dwc3_chg_detect_work(struct work_struct *w)
 				mdwc->ext_chg_active = true;
 			}
 		}
-		dev_dbg(mdwc->dev, "chg_type = %s\n",
+		dev_info(mdwc->dev, "chg_type = %s\n",
 			chg_to_string(mdwc->charger.chg_type));
 		mdwc->charger.notify_detection_complete(mdwc->otg_xceiv->otg,
 								&mdwc->charger);

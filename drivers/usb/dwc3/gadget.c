@@ -2,6 +2,7 @@
  * gadget.c - DesignWare USB3 DRD Controller Gadget Framework Link
  *
  * Copyright (C) 2010-2011 Texas Instruments Incorporated - http://www.ti.com
+ * Copyright (C) 2015 XiaoMi, Inc.
  *
  * Authors: Felipe Balbi <balbi@ti.com>,
  *	    Sebastian Andrzej Siewior <bigeasy@linutronix.de>
@@ -2084,6 +2085,11 @@ static int dwc3_gadget_vbus_session(struct usb_gadget *_gadget, int is_active)
 	/* Mark that the vbus was powered */
 	dwc->vbus_active = is_active;
 
+	//active = 1 when usb connect firstly
+	if (is_active == 1) {
+		_gadget->usb_sys_state = GADGET_STATE_IDLE;
+	}
+
 	/*
 	 * Check if upper level usb_gadget_driver was already registerd with
 	 * this udc controller driver (if dwc3_gadget_start was called)
@@ -2239,6 +2245,7 @@ static int dwc3_gadget_start(struct usb_gadget *g,
 	}
 
 	dwc->gadget_driver	= driver;
+	dwc->gadget.usb_sys_state = GADGET_STATE_IDLE;
 
 	/*
 	 * For DRD, this might get called by gadget driver during bootup
