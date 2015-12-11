@@ -1395,7 +1395,6 @@ static irqreturn_t
 qpnp_chg_vbatdet_lo_irq_handler(int irq, void *_chip)
 {
 	struct qpnp_chg_chip *chip = _chip;
-	struct timespec ts;
 	u8 chg_sts = 0;
 	int rc;
 
@@ -1411,10 +1410,8 @@ qpnp_chg_vbatdet_lo_irq_handler(int irq, void *_chip)
 			msecs_to_jiffies(EOC_CHECK_PERIOD_MS));
 		if (get_hw_version_major() == 4 ||
 				get_hw_version_major() == 5) {
-			getnstimeofday(&ts);
-			ts.tv_sec += THERMAL_MONITOR_INTVAL_SEC;
-			alarm_start_range(&chip->thermal_monitor_alarm,
-				timespec_to_ktime(ts), timespec_to_ktime(ts));
+			alarm_start_relative(&chip->thermal_monitor_alarm,
+				ns_to_ktime(THERMAL_MONITOR_INTVAL_SEC));
 			last_thermal_level = chip->thermal_levels - 1;
 		}
 		pm_stay_awake(chip->dev);
@@ -1751,7 +1748,6 @@ qpnp_chg_usb_usbin_valid_irq_handler(int irq, void *_chip)
 	struct qpnp_chg_chip *chip = _chip;
 	int usb_present, host_mode, usbin_health;
 	u8 psy_health_sts;
-	struct timespec ts;
 
 	usb_present = qpnp_chg_is_usb_chg_plugged_in(chip);
 	host_mode = qpnp_chg_is_otg_en_set(chip);
@@ -1826,11 +1822,8 @@ qpnp_chg_usb_usbin_valid_irq_handler(int irq, void *_chip)
 
 			if (get_hw_version_major() == 4 ||
 					get_hw_version_major() == 5) {
-				getnstimeofday(&ts);
-				ts.tv_sec += THERMAL_MONITOR_INTVAL_SEC;
-				alarm_start_range(&chip->thermal_monitor_alarm,
-					timespec_to_ktime(ts),
-					timespec_to_ktime(ts));
+				alarm_start_relative(&chip->thermal_monitor_alarm,
+				ns_to_ktime(THERMAL_MONITOR_INTVAL_SEC));
 				last_thermal_level = chip->thermal_levels - 1;
 			}
 
@@ -2178,7 +2171,6 @@ static irqreturn_t
 qpnp_chg_chgr_chg_fastchg_irq_handler(int irq, void *_chip)
 {
 	struct qpnp_chg_chip *chip = _chip;
-	struct timespec ts;
 	bool fastchg_on = false;
 
 	qpnp_chg_irq_wake_disable(&chip->chg_fastchg);
@@ -2219,12 +2211,8 @@ qpnp_chg_chgr_chg_fastchg_irq_handler(int irq, void *_chip)
 					msecs_to_jiffies(EOC_CHECK_PERIOD_MS));
 				if (get_hw_version_major() == 4 ||
 						get_hw_version_major() == 5) {
-					getnstimeofday(&ts);
-					ts.tv_sec += THERMAL_MONITOR_INTVAL_SEC;
-					alarm_start_range(
-						&chip->thermal_monitor_alarm,
-						timespec_to_ktime(ts),
-						timespec_to_ktime(ts));
+					alarm_start_relative(&chip->thermal_monitor_alarm,
+						ns_to_ktime(THERMAL_MONITOR_INTVAL_SEC));
 					last_thermal_level = \
 						chip->thermal_levels - 1;
 				}
@@ -3901,7 +3889,6 @@ static void qpnp_chg_thermal_monitor_work(struct work_struct *work)
 			struct qpnp_chg_chip, thermal_monitor_work);
 	int usb_present = 0, batt_present = 0;
 	int batt_temp, thermal_level;
-	struct timespec ts;
 
 	usb_present = qpnp_chg_is_usb_chg_plugged_in(chip);
 	batt_present = get_prop_batt_present(chip);
@@ -3935,22 +3922,20 @@ static void qpnp_chg_thermal_monitor_work(struct work_struct *work)
 	if (last_thermal_level != thermal_level)
 		qpnp_batt_system_temp_level_set(chip, thermal_level);
 
-	getnstimeofday(&ts);
-	ts.tv_sec += THERMAL_MONITOR_INTVAL_SEC;
-	alarm_start_range(&chip->thermal_monitor_alarm,
-		timespec_to_ktime(ts), timespec_to_ktime(ts));
-
+	alarm_start_relative(&chip->thermal_monitor_alarm,
+		ns_to_ktime(THERMAL_MONITOR_INTVAL_SEC));
 	last_thermal_level = thermal_level;
 
 	return;
 }
 
-static void qpnp_chg_thermal_monitor_callback(struct alarm *alarm)
+static enum alarmtimer_restart qpnp_chg_thermal_monitor_callback(struct alarm *alarm, ktime_t now)
 {
 	struct qpnp_chg_chip *chip = container_of(alarm, struct qpnp_chg_chip,
 				thermal_monitor_alarm);
 
 	schedule_work(&chip->thermal_monitor_work);
+	return ALARMTIMER_NORESTART;
 }
 
 #define CONSECUTIVE_COUNT	3
@@ -5636,7 +5621,7 @@ qpnp_charger_probe(struct spmi_device *spmi)
 	INIT_WORK(&chip->btc_hot_irq_debounce_work,
 			qpnp_chg_btc_hot_irq_debounce_work);
 
-	alarm_init(&chip->thermal_monitor_alarm, ANDROID_ALARM_RTC_WAKEUP,
+	alarm_init(&chip->thermal_monitor_alarm, ALARM_REALTIME,
 		qpnp_chg_thermal_monitor_callback);
 	INIT_WORK(&chip->thermal_monitor_work,
 		qpnp_chg_thermal_monitor_work);
