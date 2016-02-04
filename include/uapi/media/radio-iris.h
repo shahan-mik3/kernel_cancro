@@ -147,6 +147,8 @@ struct radio_hci_event_hdr {
 	__u8	plen;
 } __packed;
 
+extern struct mutex fm_smd_enable;
+
 struct radio_hci_dev {
 	char		name[8];
 	unsigned long	flags;
