@@ -91,7 +91,9 @@ struct qseecom_load_img_req {
 	uint32_t img_len; /* in */
 	int32_t  ifd_data_fd; /* in */
 	char	 img_name[MAX_APP_NAME_SIZE]; /* in */
+#ifndef CONFIG_ARCH_MSM8974
 	uint32_t app_arch; /* in */
+#endif
 	int app_id; /* out*/
 };
 
@@ -124,7 +126,9 @@ struct qseecom_qsee_version_req {
 struct qseecom_qseos_app_load_query {
 	char app_name[MAX_APP_NAME_SIZE]; /* in */
 	int app_id; /* out */
+#ifndef CONFIG_ARCH_MSM8974
 	uint32_t app_arch;
+#endif
 };
 
 struct qseecom_send_svc_cmd_req {
