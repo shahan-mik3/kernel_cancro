@@ -1390,7 +1390,7 @@ qpnp_bat_if_adc_disable_work(struct work_struct *work)
 }
 
 #define EOC_CHECK_PERIOD_MS	10000
-#define THERMAL_MONITOR_INTVAL_SEC	20
+#define THERMAL_MONITOR_INTVAL_SEC 20LL * NSEC_PER_SEC
 static irqreturn_t
 qpnp_chg_vbatdet_lo_irq_handler(int irq, void *_chip)
 {
