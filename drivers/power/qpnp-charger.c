@@ -2734,17 +2734,6 @@ get_prop_capacity(struct qpnp_chg_chip *chip)
 				pr_warn_ratelimited("Battery 0, CHG absent\n");
 		}
 
-		pr_debug("prev is %d, current is %d", chip->prev_soc, soc);
-		if (chip->prev_soc == -EINVAL)
-			chip->prev_soc = soc;
-
-		if (chip->prev_soc != soc && soc > 10) {
-			soc = (soc + chip->prev_soc) / 2 + 1;
-			soc = min(100, soc);
-			soc = max(0, soc);
-		}
-
-
 		if (charger_in &&
 			(soc > 95 && soc < 100) &&
 			battery_status == POWER_SUPPLY_STATUS_FULL) {
@@ -2752,8 +2741,6 @@ get_prop_capacity(struct qpnp_chg_chip *chip)
 			soc = 100;
 		}
 
-		chip->prev_soc = soc;
-		pr_debug("final report:%d\n", soc);
 		return soc;
 	} else {
 		pr_debug("No BMS supply registered return 50\n");
