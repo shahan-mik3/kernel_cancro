@@ -21,6 +21,7 @@
 #include <linux/leds.h>
 #include <linux/qpnp/pwm.h>
 #include <linux/err.h>
+#include <linux/kernel.h>
 
 #include "mdss_dsi.h"
 #include "mdss_dba_utils.h"
@@ -587,10 +588,14 @@ end:
 	return 0;
 }
 
+static long long dispparam_status = 0xf0000110;
+static int cabc_mode = 1;
+
 static int mdss_dsi_panel_dispparam(struct mdss_panel_data *pdata, const char* cmd)
 {
 	struct mdss_dsi_ctrl_pdata *ctrl = NULL;
 	int rc = 0;
+    long iCmd;
 
 	if (pdata == NULL) {
 		pr_err("%s: Invalid input data\n", __func__);
@@ -602,25 +607,69 @@ static int mdss_dsi_panel_dispparam(struct mdss_panel_data *pdata, const char* c
 
 	pr_debug("%s: ctrl=%p ndx=%d\n", __func__, ctrl, ctrl->ndx);
 
-	pr_info("%s: sending dispparam %s\n", __func__, cmd);
 
-    if (!strncmp(cmd, "warm", 4)) {
+    if(strstr(cmd, "0x") && strlen(cmd) < 10) {
+        rc = kstrtol(cmd, 16, &iCmd);
+        if(rc != 0) {
+            pr_err("kstrtol failed !");
+            return rc;
+        }
+    }
+    pr_info("%s: sending dispparam %s len %zu\n", __func__, cmd, strlen(cmd));
+
+    if (!strncmp(cmd, "warm", 4) || iCmd == 0x1) {
         mdss_dsi_panel_dispparam_send(ctrl, &ctrl->dispparam_warm_cmds);
-    } else if (!strncmp(cmd, "cool", 4)) {
+    } else if (!strncmp(cmd, "cool", 4) || iCmd == 0x3) {
         mdss_dsi_panel_dispparam_send(ctrl, &ctrl->dispparam_cold_cmds);
-    } else if (!strncmp(cmd, "default", 7)) {
+    } else if (!strncmp(cmd, "default", 7) || iCmd == 0x2) {
         mdss_dsi_panel_dispparam_send(ctrl, &ctrl->dispparam_default_cmds);
-    } else if (!strncmp(cmd, "ceon", 4)) {
+    } else if (!strncmp(cmd, "ceon", 4) || iCmd == 0x10) {
         mdss_dsi_panel_dispparam_send(ctrl, &ctrl->dispparam_ceon_cmds);
-    } else if (!strncmp(cmd, "ceoff", 5)) {
+    } else if (!strncmp(cmd, "ceoff", 5) || iCmd == 0xf0) {
         mdss_dsi_panel_dispparam_send(ctrl, &ctrl->dispparam_ceoff_cmds);
-    } else if (!strncmp(cmd, "cabcon", 6)) {
+    } else if (!strncmp(cmd, "cabcon", 6) || iCmd == 0x200) {
         mdss_dsi_panel_dispparam_send(ctrl, &ctrl->dispparam_cabcon_cmds);
+        cabc_mode = 1;
     } else if (!strncmp(cmd, "cabcoff", 7)) {
         mdss_dsi_panel_dispparam_send(ctrl, &ctrl->dispparam_cabcoff_cmds);
+        cabc_mode = 0;
+    }
+
+    if(strlen(cmd) == 10) {
+        rc = kstrtoll(cmd, 16, &dispparam_status);
     }
 
 	return rc;
+}
+
+#define COLOR_MODE_BIT_MASK 0x0000000f
+#define CE_BIT_MASK 0x000000f0
+void mdss_dsi_panel_update_dispparam(struct mdss_dsi_ctrl_pdata
+        *ctrl_pdata, struct mdss_panel_data *pdata) {
+
+
+    int color_mode = dispparam_status & COLOR_MODE_BIT_MASK;
+    int ce_mode = dispparam_status & CE_BIT_MASK;
+
+    if (!color_mode) {
+        ctrl_pdata->dispparam_fnc(pdata, "default");
+    } else if (color_mode == 0x1) {
+        ctrl_pdata->dispparam_fnc(pdata, "warm");
+    } else if (color_mode == 0x3) {
+        ctrl_pdata->dispparam_fnc(pdata, "cool");
+    }
+
+    if (ce_mode == 0x10) {
+    ctrl_pdata->dispparam_fnc(pdata, "ceon");
+    } else if (!ce_mode) {
+        ctrl_pdata->dispparam_fnc(pdata, "ceoff");
+    }
+
+    if (cabc_mode) {
+        ctrl_pdata->dispparam_fnc(pdata, "cabcon");
+    } else {
+        ctrl_pdata->dispparam_fnc(pdata, "cabcoff");
+    }
 }
 
 static void mdss_dsi_panel_switch_mode(struct mdss_panel_data *pdata,
