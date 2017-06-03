@@ -68,7 +68,7 @@
 #define SOC_STORAGE_REG			0xB0
 #define IAVG_STORAGE_REG		0xB1
 //#define BMS_FCC_COUNT			0xB2
-#define INST_OCV_STORAGE_REG		0xB2 /* INSTANT OCV, last_ocv + cc */
+#define OCV_STORAGE_REG		0xB2 /* SHUTDOWN OCV, last_ocv + cc */
 #define BMS_FCC_BASE_REG		0xB3 /* FCC updates - 0xB3 to 0xB7 */
 #define BMS_CHGCYL_BASE_REG		0xB8 /* FCC chgcyl - 0xB8 to 0xBC */
 #define CHARGE_INCREASE_STORAGE		0xBD
@@ -85,7 +85,7 @@
 #define IAVG_STEP_SIZE_MA		10
 #define IAVG_INVALID			0xFF
 #define SOC_INVALID			0x7E
-#define INST_OCV_INVALID		0xFF
+#define OCV_INVALID		0xFF
 
 #define IAVG_SAMPLES 16
 
@@ -1000,29 +1000,29 @@ static int estimate_ocv(struct qpnp_bms_chip *chip, int batt_temp)
 	return ocv_est_uv;
 }
 
-static int read_saved_instant_ocv(struct qpnp_bms_chip *chip)
+static int read_shutdown_ocv(struct qpnp_bms_chip *chip)
 {
 	u8 reg;
-	int rc, instant_ocv_mv;
+	int rc, shutdown_ocv_mv;
 
 	rc = qpnp_read_wrapper(chip, &reg,
-		chip->base + INST_OCV_STORAGE_REG, 1);
-	if (rc || reg == INST_OCV_INVALID) {
+		chip->base + OCV_STORAGE_REG, 1);
+	if (rc || reg == OCV_INVALID) {
 		pr_err("failed to read addr = %d %d\n",
-			chip->base + INST_OCV_STORAGE_REG, rc);
-		return INST_OCV_INVALID;
+			chip->base + OCV_STORAGE_REG, rc);
+		return OCV_INVALID;
 	} else {
-		instant_ocv_mv = 3400 + reg * 4;
-		if (instant_ocv_mv > chip->max_voltage_uv / 1000)
-			instant_ocv_mv = chip->max_voltage_uv / 1000;
+		shutdown_ocv_mv = 3400 + reg * 4;
+		if (shutdown_ocv_mv > chip->max_voltage_uv / 1000)
+			shutdown_ocv_mv = chip->max_voltage_uv / 1000;
 
-		pr_info("read instant ocv %d reg %x\n", instant_ocv_mv, reg);
+		pr_info("read shutdown ocv %d reg %x\n", shutdown_ocv_mv, reg);
 
-		return instant_ocv_mv;
+		return shutdown_ocv_mv;
 	}
 }
 
-static void backup_instant_ocv(struct qpnp_bms_chip *chip, int instant_ocv_mv)
+static void store_shutdown_ocv(struct qpnp_bms_chip *chip, int instant_ocv_mv)
 {
 	u8 reg;
 
@@ -1036,7 +1036,7 @@ static void backup_instant_ocv(struct qpnp_bms_chip *chip, int instant_ocv_mv)
 
 	pr_debug("backup instant ocv %d reg %x\n", instant_ocv_mv, reg);
 
-	qpnp_write_wrapper(chip, &reg, chip->base + INST_OCV_STORAGE_REG, 1);
+	qpnp_write_wrapper(chip, &reg, chip->base + OCV_STORAGE_REG, 1);
 }
 
 #define MIN_IAVG_MA 250
@@ -1133,6 +1133,7 @@ static int read_soc_params_raw(struct qpnp_bms_chip *chip,
 				int batt_temp)
 {
 	int warm_reset, rc;
+    int shutdown_ocv_mv;
 
 	mutex_lock(&chip->bms_output_lock);
 
@@ -1159,18 +1160,20 @@ static int read_soc_params_raw(struct qpnp_bms_chip *chip,
 		convert_and_store_ocv(chip, raw, batt_temp, true);
 		pr_info("PON_OCV_UV = %d, cc = %llx\n",
 				chip->last_ocv_uv, raw->cc);
-		warm_reset = qpnp_pon_is_warm_reset();
+        shutdown_ocv_mv = read_shutdown_ocv(chip);
+        pr_info("shutdown ocv %d\n", shutdown_ocv_mv * 1000);
+        if (shutdown_ocv_mv != OCV_INVALID) {
+            chip->last_ocv_uv = shutdown_ocv_mv * 1000;
+            raw->last_good_ocv_uv = chip->last_ocv_uv;
+        }
+        warm_reset = qpnp_pon_is_warm_reset();
 		if (raw->last_good_ocv_uv < MIN_OCV_UV
 				|| warm_reset > 0) {
-			int instant_ocv_mv;
 
 			pr_info("OCV is stale or bad, estimating new OCV.\n");
 
-			instant_ocv_mv = read_saved_instant_ocv(chip);
-			pr_info("instant ocv %d\n", instant_ocv_mv);
-
-			if (instant_ocv_mv != INST_OCV_INVALID)
-				chip->last_ocv_uv = instant_ocv_mv * 1000;
+			if (shutdown_ocv_mv != OCV_INVALID)
+				chip->last_ocv_uv = shutdown_ocv_mv * 1000;
 			else
 				chip->last_ocv_uv = estimate_ocv(chip, batt_temp);
 
@@ -2554,7 +2557,7 @@ static int calculate_state_of_charge(struct qpnp_bms_chip *chip,
 	instant_soc = DIV_ROUND_CLOSEST(instant_uah * 100, params.fcc_uah);
 	instant_ocv_uv = find_ocv_for_pc(chip, batt_temp,
 		find_pc_for_soc(chip, &tmp_params, instant_soc));
-	backup_instant_ocv(chip, instant_ocv_uv / 1000);
+	store_shutdown_ocv(chip, instant_ocv_uv / 1000);
 
 	/* always clamp soc due to BMS hw/sw immaturities */
 	new_calculated_soc = clamp_soc_based_on_voltage(chip,
