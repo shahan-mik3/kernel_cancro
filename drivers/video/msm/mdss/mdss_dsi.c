@@ -2137,6 +2137,14 @@ static int mdss_dsi_check_params(struct mdss_dsi_ctrl_pdata *ctrl, void *arg)
 	return rc;
 }
 
+static void mdss_dsi_dispparam_work(struct work_struct *work)
+{
+	struct delayed_work *dwork = to_delayed_work(work);
+	struct mdss_dsi_ctrl_pdata *ctrl_pdata = container_of(dwork,
+				struct mdss_dsi_ctrl_pdata, dispparam_work);
+    mdss_dsi_panel_update_dispparam(ctrl_pdata);
+}
+
 static int mdss_dsi_event_handler(struct mdss_panel_data *pdata,
 				  int event, void *arg)
 {
@@ -2185,11 +2193,15 @@ static int mdss_dsi_event_handler(struct mdss_panel_data *pdata,
 			rc = mdss_dsi_unblank(pdata);
 		pdata->panel_info.esd_rdy = true;
         mdss_dsi_panel_update_dispparam(ctrl_pdata, pdata);
+		__cancel_delayed_work(&ctrl_pdata->dispparam_work);
+		schedule_delayed_work(&ctrl_pdata->dispparam_work,
+					msecs_to_jiffies(10));
 		break;
 	case MDSS_EVENT_BLANK:
 		power_state = (int) (unsigned long) arg;
 		if (ctrl_pdata->off_cmds.link_state == DSI_HS_MODE)
 			rc = mdss_dsi_blank(pdata, power_state);
+		__cancel_delayed_work(&ctrl_pdata->dispparam_work);
 		break;
 	case MDSS_EVENT_PANEL_OFF:
 		power_state = (int) (unsigned long) arg;
@@ -2274,7 +2286,9 @@ static int mdss_dsi_event_handler(struct mdss_panel_data *pdata,
 		}
 		break;
     case MDSS_EVENT_SET_DISPPARAM:
-        ctrl_pdata->dispparam_fnc(pdata, (const char*)arg);
+        if (pdata->panel_info.panel_power_on == 1) {
+            ctrl_pdata->dispparam_fnc(pdata, (const char*)arg);
+        }
         break;
 	default:
 		pr_debug("%s: unhandled event=%d\n", __func__, event);
@@ -2928,6 +2942,8 @@ static int mdss_dsi_probe(struct platform_device *pdev)
 		pr_err("%s: Invalid DSI hw configuration\n", __func__);
 		goto error;
 	}
+    INIT_DELAYED_WORK(&ctrl_pdata->dispparam_work,
+            mdss_dsi_dispparam_work);
 
 	mdss_dsi_config_clk_src(pdev);
 
@@ -2969,6 +2985,7 @@ static int mdss_dsi_ctrl_remove(struct platform_device *pdev)
 	if (ctrl_pdata->workq)
 		destroy_workqueue(ctrl_pdata->workq);
 
+    destroy_workqueue(&ctrl_pdata->dispparam_work);
 	return 0;
 }
 

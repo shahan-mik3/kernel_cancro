@@ -476,6 +476,7 @@ struct mdss_dsi_ctrl_pdata {
 	u32 *status_value;
 	u32 status_error_count;
 	u32 max_status_error_count;
+    struct delayed_work dispparam_work;
 
 	struct dsi_panel_cmds video2cmd;
 	struct dsi_panel_cmds cmd2video;
@@ -621,7 +622,7 @@ int mdss_dsi_register_recovery_handler(struct mdss_dsi_ctrl_pdata *ctrl,
 		struct mdss_intf_recovery *recovery);
 void mdss_dsi_unregister_bl_settings(struct mdss_dsi_ctrl_pdata *ctrl_pdata);
 void mdss_dsi_panel_update_dispparam(struct mdss_dsi_ctrl_pdata
-        *ctrl_pdata, struct mdss_panel_data *pdata);
+        *ctrl_pdata);
 
 static inline const char *__mdss_dsi_pm_name(enum dsi_pm_type module)
 {

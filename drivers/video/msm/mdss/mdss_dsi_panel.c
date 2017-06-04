@@ -645,11 +645,17 @@ static int mdss_dsi_panel_dispparam(struct mdss_panel_data *pdata, const char* c
 #define COLOR_MODE_BIT_MASK 0x0000000f
 #define CE_BIT_MASK 0x000000f0
 void mdss_dsi_panel_update_dispparam(struct mdss_dsi_ctrl_pdata
-        *ctrl_pdata, struct mdss_panel_data *pdata) {
+        *ctrl_pdata) {
 
+    struct mdss_panel_data *pdata = NULL;
 
     int color_mode = dispparam_status & COLOR_MODE_BIT_MASK;
     int ce_mode = dispparam_status & CE_BIT_MASK;
+
+    pdata = &ctrl_pdata->panel_data;
+
+    ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
+            panel_data);
 
     if (!color_mode) {
         ctrl_pdata->dispparam_fnc(pdata, "default");
