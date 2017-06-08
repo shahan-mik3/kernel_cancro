@@ -633,6 +633,22 @@ static int mdss_dsi_panel_dispparam(struct mdss_panel_data *pdata, const char* c
     } else if (!strncmp(cmd, "cabcoff", 7)) {
         mdss_dsi_panel_dispparam_send(ctrl, &ctrl->dispparam_cabcoff_cmds);
         cabc_mode = 0;
+    } else if (iCmd == 0x6) {
+        mdss_dsi_panel_dispparam_send(ctrl, &ctrl->dispparam_papermode1_cmds);
+    } else if (iCmd == 0x7) {
+        mdss_dsi_panel_dispparam_send(ctrl, &ctrl->dispparam_papermode2_cmds);
+    } else if (iCmd == 0x8) {
+        mdss_dsi_panel_dispparam_send(ctrl, &ctrl->dispparam_papermode3_cmds);
+    } else if (iCmd == 0x9) {
+        mdss_dsi_panel_dispparam_send(ctrl, &ctrl->dispparam_papermode4_cmds);
+    } else if (iCmd == 0xa) {
+        mdss_dsi_panel_dispparam_send(ctrl, &ctrl->dispparam_papermode5_cmds);
+    } else if (iCmd == 0xb) {
+        mdss_dsi_panel_dispparam_send(ctrl, &ctrl->dispparam_papermode6_cmds);
+    } else if (iCmd == 0xc) {
+        mdss_dsi_panel_dispparam_send(ctrl, &ctrl->dispparam_papermode7_cmds);
+    } else if (iCmd == 0x5) {
+        mdss_dsi_panel_dispparam_send(ctrl, &ctrl->dispparam_papermode_cmds);
     }
 
     if(strlen(cmd) == 10) {
@@ -663,6 +679,22 @@ void mdss_dsi_panel_update_dispparam(struct mdss_dsi_ctrl_pdata
         ctrl_pdata->dispparam_fnc(pdata, "warm");
     } else if (color_mode == 0x3) {
         ctrl_pdata->dispparam_fnc(pdata, "cool");
+    } else if (color_mode == 0x6) {
+        ctrl_pdata->dispparam_fnc(pdata, "0x6");
+    } else if (color_mode == 0x7) {
+        ctrl_pdata->dispparam_fnc(pdata, "0x7");
+    } else if (color_mode == 0x8) {
+        ctrl_pdata->dispparam_fnc(pdata, "0x8");
+    } else if (color_mode == 0x9) {
+        ctrl_pdata->dispparam_fnc(pdata, "0x9");
+    } else if (color_mode == 0xa) {
+        ctrl_pdata->dispparam_fnc(pdata, "0xa");
+    } else if (color_mode == 0xb) {
+        ctrl_pdata->dispparam_fnc(pdata, "0xb");
+    } else if (color_mode == 0xc) {
+        ctrl_pdata->dispparam_fnc(pdata, "0xc");
+    } else if (color_mode == 0x5) {
+        ctrl_pdata->dispparam_fnc(pdata, "0x5");
     }
 
     if (ce_mode == 0x10) {
@@ -1758,6 +1790,30 @@ static int mdss_dsi_parse_panel_features(struct device_node *np,
         mdss_dsi_parse_dcs_cmds(np, &ctrl->dispparam_cabcoff_cmds,
                 "qcom,mdss-dsi-dispparam-cabcoff-command",
                 "qcom,mdss-dsi-dispparam-cabcoff-command-state");
+        mdss_dsi_parse_dcs_cmds(np, &ctrl->dispparam_papermode_cmds,
+                "qcom,mdss-dsi-dispparam-papermode-command",
+                "qcom,mdss-dsi-dispparam-papermode-command-state");
+        mdss_dsi_parse_dcs_cmds(np, &ctrl->dispparam_papermode1_cmds,
+                "qcom,mdss-dsi-dispparam-papermode1-command",
+                "qcom,mdss-dsi-dispparam-papermode1-command-state");
+        mdss_dsi_parse_dcs_cmds(np, &ctrl->dispparam_papermode2_cmds,
+                "qcom,mdss-dsi-dispparam-papermode2-command",
+                "qcom,mdss-dsi-dispparam-papermode2-command-state");
+        mdss_dsi_parse_dcs_cmds(np, &ctrl->dispparam_papermode3_cmds,
+                "qcom,mdss-dsi-dispparam-papermode3-command",
+                "qcom,mdss-dsi-dispparam-papermode3-command-state");
+        mdss_dsi_parse_dcs_cmds(np, &ctrl->dispparam_papermode4_cmds,
+                "qcom,mdss-dsi-dispparam-papermode4-command",
+                "qcom,mdss-dsi-dispparam-papermode4-command-state");
+        mdss_dsi_parse_dcs_cmds(np, &ctrl->dispparam_papermode5_cmds,
+                "qcom,mdss-dsi-dispparam-papermode5-command",
+                "qcom,mdss-dsi-dispparam-papermode5-command-state");
+        mdss_dsi_parse_dcs_cmds(np, &ctrl->dispparam_papermode6_cmds,
+                "qcom,mdss-dsi-dispparam-papermode6-command",
+                "qcom,mdss-dsi-dispparam-papermode6-command-state");
+        mdss_dsi_parse_dcs_cmds(np, &ctrl->dispparam_papermode7_cmds,
+                "qcom,mdss-dsi-dispparam-papermode7-command",
+                "qcom,mdss-dsi-dispparam-papermode7-command-state");
     }
 
 
