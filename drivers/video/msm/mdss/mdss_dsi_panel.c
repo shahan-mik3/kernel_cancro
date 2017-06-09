@@ -602,6 +602,10 @@ static int mdss_dsi_panel_dispparam(struct mdss_panel_data *pdata, const char* c
 		return -EINVAL;
 	}
 
+    if (pdata->panel_info.panel_power_on == 0) {
+        return 0;
+    }
+
 	ctrl = container_of(pdata, struct mdss_dsi_ctrl_pdata,
 				panel_data);
 
