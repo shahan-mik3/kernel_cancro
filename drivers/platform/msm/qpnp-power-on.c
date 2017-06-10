@@ -233,6 +233,44 @@ static const char * const qpnp_poff_reason[] = {
 static int warm_boot;
 module_param(warm_boot, int, 0);
 
+int qpnp_pon_is_lpk(void)
+{
+    struct qpnp_pon *pon = sys_reset_dev;
+    int rc, index;
+    u8 buf[2];
+    u16 poff_sts = 0;
+
+    if (!pon)
+        return 0;
+
+    rc = spmi_ext_register_readl(pon->spmi->ctrl, pon->spmi->sid,
+            QPNP_POFF_REASON1(pon->base),
+            buf, 2);
+    if (rc) {
+        dev_err(&pon->spmi->dev, "Unable to read POFF_RESASON regs\n");
+        return rc;
+    }
+    poff_sts = buf[0] | (buf[1] << 8);
+    index = ffs(poff_sts) - 1;
+
+    if (index >= ARRAY_SIZE(qpnp_poff_reason) || index < 0)
+        dev_info(&pon->spmi->dev,
+                "PMIC@SID%d: Unknown power-off reason\n",
+                pon->spmi->sid);
+    else
+        dev_info(&pon->spmi->dev,
+                "PMIC@SID%d: Power-off reason: %s\n",
+                pon->spmi->sid,
+                qpnp_poff_reason[index]);
+
+    //The bit 7 is 1, means the off reason is powerkey
+    if (index == 7)
+        return 1;
+    else
+        return 0;
+}
+EXPORT_SYMBOL(qpnp_pon_is_lpk);
+
 static int
 qpnp_pon_masked_write(struct qpnp_pon *pon, u16 addr, u8 mask, u8 val)
 {

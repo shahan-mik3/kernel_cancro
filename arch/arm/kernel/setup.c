@@ -57,6 +57,7 @@
 #include <asm/unwind.h>
 #include <asm/memblock.h>
 #include <asm/virt.h>
+#include <asm/bootinfo.h>
 
 #include "atags.h"
 
@@ -738,6 +739,20 @@ static void __init request_standard_resources(const struct machine_desc *mdesc)
 	if (mdesc->reserve_lp2)
 		request_resource(&ioport_resource, &lp2);
 }
+
+#ifdef CONFIG_OF_FLATTREE
+void __init early_init_dt_setup_pureason_arch(unsigned long pu_reason)
+{
+	set_powerup_reason(pu_reason);
+	pr_info("Powerup reason=0x%x\n", get_powerup_reason());
+}
+
+void __init early_init_dt_setup_hwversion_arch(unsigned long hw_version)
+{
+	set_hw_version(hw_version);
+	pr_info("Hw version=0x%x\n", get_hw_version());
+}
+#endif
 
 #if defined(CONFIG_VGA_CONSOLE) || defined(CONFIG_DUMMY_CONSOLE)
 struct screen_info screen_info = {

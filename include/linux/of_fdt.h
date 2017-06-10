@@ -133,6 +133,10 @@ extern u64 dt_mem_next_cell(int s, const __be32 **cellp);
 extern void early_init_dt_setup_initrd_arch(u64 start, u64 end);
 #endif
 
+extern void early_init_dt_setup_pureason_arch(unsigned long pu_reason);
+
+extern void early_init_dt_setup_hwversion_arch(unsigned long hw_version);
+
 /* Early flat tree scan hooks */
 extern int early_init_dt_scan_root(unsigned long node, const char *uname,
 				   int depth, void *data);
