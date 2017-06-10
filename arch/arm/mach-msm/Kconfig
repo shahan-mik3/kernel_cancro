@@ -1106,4 +1106,11 @@ config FSM9900_GSM_NL
 	  The serial port connection can be established to communicate with the
 	  GSM NL module.
 
+config MSM_UART_HS_USE_HS
+	bool "Use HS while not UART"
+	default y
+	help
+	  Say Y here if HeadSet used in user build.
+
+
 endif
