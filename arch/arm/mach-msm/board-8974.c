@@ -41,9 +41,57 @@
 #include "clock.h"
 #include "platsmp.h"
 
+#ifdef CONFIG_PSTORE_RAM
+#include <linux/pstore_ram.h>
+#include <linux/memblock.h>
+
+#define XIAOMI_PERSISTENT_RAM_SIZE SZ_2M
+#define XIAOMI_RAM_CONSOLE_SIZE (256 * SZ_1K)
+#define XIAOMI_RAM_CONSOLE_BASE (SZ_2G - SZ_2M)
+
+static struct ramoops_platform_data xiaomi_ramoops_data = {
+	.console_size = XIAOMI_RAM_CONSOLE_SIZE,
+	.mem_address  = XIAOMI_RAM_CONSOLE_BASE,
+	.mem_size     = XIAOMI_PERSISTENT_RAM_SIZE,
+};
+
+static struct platform_device xiaomi_ramoops_dev = {
+	.name = "ramoops",
+	.dev = {
+		.platform_data = &xiaomi_ramoops_data,
+	}
+};
+
+static void __init xiaomi_add_persist_ram_device(void)
+{
+	int ret = memblock_reserve(memblock_end_of_DRAM() - SZ_2M, XIAOMI_PERSISTENT_RAM_SIZE);
+
+	if (ret)
+		pr_err("%s: failed to initialize persistent ram\n", __func__);
+}
+
+static void __init xiaomi_add_persistent_device(void)
+{
+	int ret;
+
+	if (!xiaomi_ramoops_data.mem_address) {
+		pr_err("%s: No allocated memory for ramoops\n", __func__);
+		return;
+	}
+
+	ret = platform_device_register(&xiaomi_ramoops_dev);
+	if (ret)
+		pr_err("%s: Unable to register platform device\n", __func__);
+}
+#endif
+
+
 void __init msm_8974_reserve(void)
 {
 	of_scan_flat_dt(dt_scan_for_memory_reserve, NULL);
+#ifdef CONFIG_PSTORE_RAM
+    xiaomi_add_persist_ram_device();
+#endif
 }
 
 /*
@@ -60,6 +108,9 @@ void __init msm8974_add_drivers(void)
 	rpm_smd_regulator_driver_init();
 	msm_spm_device_init();
 	krait_power_init();
+#ifdef CONFIG_PSTORE_RAM
+    xiaomi_add_persistent_device();
+#endif
 }
 
 static struct of_dev_auxdata msm_hsic_host_adata[] = {
@@ -91,8 +142,6 @@ static struct of_dev_auxdata msm8974_auxdata_lookup[] __initdata = {
 			"msm-tsens", NULL),
 	OF_DEV_AUXDATA("qcom,qcedev", 0xFD440000, \
 			"qcedev.0", NULL),
-	OF_DEV_AUXDATA("qcom,qcrypto", 0xFD440000, \
-			"qcrypto.0", NULL),
 	OF_DEV_AUXDATA("qcom,hsic-host", 0xF9A00000, \
 			"msm_hsic_host", NULL),
 	OF_DEV_AUXDATA("qcom,hsic-smsc-hub", 0, "msm_smsc_hub",
