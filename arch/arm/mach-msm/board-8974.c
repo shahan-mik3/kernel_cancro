@@ -53,6 +53,8 @@ static struct ramoops_platform_data xiaomi_ramoops_data = {
 	.console_size = XIAOMI_RAM_CONSOLE_SIZE,
 	.mem_address  = XIAOMI_RAM_CONSOLE_BASE,
 	.mem_size     = XIAOMI_PERSISTENT_RAM_SIZE,
+    .pmsg_size = XIAOMI_RAM_CONSOLE_SIZE,
+    .dump_oops = 1,
 };
 
 static struct platform_device xiaomi_ramoops_dev = {
