@@ -3858,6 +3858,11 @@ int mdss_fb_do_ioctl(struct fb_info *info, unsigned int cmd,
 			ret = copy_to_user(argp, &buf_sync, sizeof(buf_sync));
 		break;
 
+	case MSMFB_NOTIFY_UPDATE:
+		ret = mdss_fb_notify_update(mfd, argp);
+		break;
+
+    case 0x40b86da4:
 	case MSMFB_DISPLAY_COMMIT:
 		ret = mdss_fb_display_commit(info, argp);
 		break;
