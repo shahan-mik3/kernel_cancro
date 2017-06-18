@@ -595,4 +595,19 @@
 		regulator-name = "vph_pwr";
 		regulator-always-on;
 	};
+    vsp_vreg: disp_vsp_vreg {
+		compatible = "regulator-fixed";
+		regulator-name = "vsp";
+		gpio = <&msmgpio 55 0>;
+		enable-active-high;
+		regulator-boot-on;
+	};
+
+	vsn_vreg: disp_vsn_vreg {
+		compatible = "regulator-fixed";
+		regulator-name = "vsn";
+		gpio = <&msmgpio 56 0>;
+		enable-active-high;
+		regulator-boot-on;
+	};
 };

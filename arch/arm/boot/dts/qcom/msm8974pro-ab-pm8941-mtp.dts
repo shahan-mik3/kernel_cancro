@@ -14,9 +14,10 @@
 
 #include "msm8974pro-ab-pm8941.dtsi"
 #include "msm8974-mtp.dtsi"
+#include "msm8974-camera-sensor-mtp.dtsi"
 
 / {
-	model = "Qualcomm Technologies, Inc. MSM 8974Pro-AA/AB MTP";
+	model = "Xiaomi Communications, Inc. Mi 3 (W)CDMA";
 	compatible = "qcom,msm8974-mtp", "qcom,msm8974", "qcom,mtp";
 	qcom,board-id = <8 0>;
 };
@@ -31,4 +32,126 @@
 	qcom,usb2-enable-uicc;
 	hsusb_vdd_dig-supply = <&pm8841_s2_corner>;
 	qcom,vdd-voltage-level = <1 2 3 5 7>;
+};
+
+&soc {
+
+	i2c@f9924000 {
+		atmel_mxt_ts@4a {
+			compatible = "atmel,mxt-ts";
+			reg = <0x4a>;
+			interrupt-parent = <&msmgpio>;
+			interrupts = <54 0x2>;
+			atmel,reset-gpio = <&msmgpio 60 0x00>;
+			atmel,irq-gpio = <&msmgpio 54 0x2008>;
+			atmel,power-gpio = <&msmgpio 48 0x00>;
+			atmel,mxt-fw-name = "mxT540SC30.fw";
+			atmel,unlock-move-threshold = <90000>;
+			atmel,staying-threshold = <5>;
+			atmel,landing-threshold = <8>;
+			atmel,landing-edge-threshold = <28>;
+			atmel,landing-jiffies = <1000>;
+			atmel,edge-clip = <130>;
+			atmel,config-array-size = <2>;
+			atmel,irqflags = <0x2008>;
+			atmel,gpio-mask = <0x4>;
+			atmel,linearity-reg-pos = <11 12 17 18>;
+			atmel,linearity-singlex = <10 10 178 50>;
+			atmel,linearity-dualx = <24 244 63 51>;
+			atmel,linearity-para-num = <4>;
+			atmel,rx-num = <18>;
+			atmel,tx-num = <30>;
+			atmel,ref-diff-threshold = <400>;
+			atmel,ref-diff-halfline-threshold = <500>;
+			atmel,cfg_1 {
+				atmel,family-id = <0x82>;
+				atmel,variant-id = <0x2C>;
+				atmel,version = <0x30>;
+				atmel,build = <0xAA>;
+				atmel,mxt-cfg-name = "mxt_wintek_diamond_config_v30_sharp.fw";
+				atmel,vendor-id = <0x04>;
+				atmel,rev-id = <0x00>;
+				atmel,lcd-id = <0x00>;
+				atmel,key-codes = <158 102 139>;
+				atmel,key-num = <3>;
+				atmel,selfthr-suspend = <51>;
+				atmel,selfintthr-stylus = <12>;
+				atmel,selfintthr-suspend = <8>;
+				atmel,t71-tchthr-pos = <22>;
+				atmel,self-no-touch-threshold = <220>;
+				atmel,mult-no-touch-threshold = <70>;
+				atmel,self-chgtime-min = <70>;
+				atmel,self-chgtime-max = <100>;
+				atmel,mult-intthr-sensitive = <12>;
+				atmel,mult-intthr-not-sensitive = <20>;
+				atmel,atchthr-sensitive = <6>;
+				atmel,mult-tchthr-sensitive = <0x3C>;
+				atmel,mult-tchthr-not-sensitive = <0x20>;
+			};
+			atmel,cfg_2 {
+				atmel,family-id = <0x82>;
+				atmel,variant-id = <0x2C>;
+				atmel,version = <0x30>;
+				atmel,build = <0xAA>;
+				atmel,mxt-cfg-name = "mxt_wintek_diamond_config_v30_lg.fw";
+				atmel,vendor-id = <0x04>;
+				atmel,rev-id = <0x00>;
+				atmel,lcd-id = <0x01>;
+				atmel,key-codes = <158 102 139>;
+				atmel,key-num = <3>;
+				atmel,selfthr-suspend = <51>;
+				atmel,selfintthr-stylus = <12>;
+				atmel,selfintthr-suspend = <8>;
+				atmel,t71-tchthr-pos = <22>;
+				atmel,self-no-touch-threshold = <220>;
+				atmel,mult-no-touch-threshold = <70>;
+				atmel,self-chgtime-min = <70>;
+				atmel,self-chgtime-max = <100>;
+				atmel,mult-intthr-sensitive = <12>;
+				atmel,mult-intthr-not-sensitive = <20>;
+				atmel,atchthr-sensitive = <6>;
+				atmel,mult-tchthr-sensitive = <0x3C>;
+				atmel,mult-tchthr-not-sensitive = <0x20>;
+			};
+		};
+	};
+
+	i2c@f9928000 {
+		bcm2079x-i2c {
+			compatible = "broadcom,bcm2079x-i2c";
+			reg = <0x77>;
+			interrupt-parent = <&msmgpio>;
+			interrupts = <59 0x01>;
+			broadcom,enable-gpio = <&msmgpio 58 0x00>;
+			broadcom,irq-gpio = <&msmgpio 59 0x00>;
+			broadcom,wake-gpio = <&msmgpio 62 0x00>;
+		};
+	};
+
+};
+
+&pm8941_bms {
+	/*qcom,use-external-rsense;*/
+	qcom,max-voltage-uv = <4350000>;
+};
+
+&pm8941_chg {
+	/*qcom,use-external-rsense;*/
+	qcom,vddmax-mv = <4350>;
+	qcom,vddsafe-mv = <4400>;
+	qcom,ibatmax-ma = <1500>;
+	qcom,ibatsafe-ma = <1600>;
+	qcom,thermal-mitigation = <1500 700 600 325>;
+};
+
+&pm8941_iadc {
+	qcom,rsense = <10000000>;
+};
+
+/ {
+	mtp_batterydata: qcom,battery-data {
+		#include "batterydata-BM31-SDI-2980mAh.dtsi"
+		#include "batterydata-BM31-SONY-2980mAh.dtsi"
+		#include "batterydata-BM31-LG-2980mAh.dtsi"
+	};
 };
