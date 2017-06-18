@@ -2188,6 +2188,7 @@ dai_mi2s: qcom,msm-dai-q6-mi2s-quat {
 		qcom,firmware-name = "modem";
 		qcom,pil-self-auth;
 		qcom,mba-image-is-not-elf;
+		qcom,mba-load-to-phys;
 
 		/* GPIO inputs from mss */
 		qcom,gpio-err-fatal = <&smp2pgpio_ssr_smp2p_1_in 0 0>;
