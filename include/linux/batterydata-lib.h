@@ -22,7 +22,7 @@
 #define PC_CC_COLS             13
 
 #define PC_TEMP_ROWS		31
-#define PC_TEMP_COLS		8
+#define PC_TEMP_COLS		11
 
 #define ACC_IBAT_ROWS		4
 #define ACC_TEMP_COLS		3
