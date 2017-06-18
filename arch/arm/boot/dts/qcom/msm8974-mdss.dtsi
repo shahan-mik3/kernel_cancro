@@ -30,7 +30,7 @@
 
 		/* Fudge factors */
 		qcom,mdss-ab-factor = <2 1>;		/* 2 times    */
-		qcom,mdss-ib-factor = <6 5>;		/* 1.2 times  */
+		qcom,mdss-ib-factor = <15 8>;		/* 1.2 times  */
 		qcom,mdss-ib-factor-overlap = <7 4>;	/* 1.75 times  */
 		qcom,mdss-clk-factor = <5 4>;		/* 1.25 times */
 
@@ -106,6 +106,14 @@
 		qcom,mdss-prefill-pingpong-buffer-pixels = <4096>;
 		qcom,mdss-prefill-fbc-lines = <2>;
 
+        clocks = <&clock_mmss clk_mdss_ahb_clk>,
+				 <&clock_mmss clk_mdss_axi_clk>,
+				 <&clock_mmss clk_mdp_clk_src>,
+				 <&clock_mmss clk_mdss_mdp_clk>,
+				 <&clock_mmss clk_mdss_vsync_clk>;
+        clock-names = "iface_clk", "bus_clk", "core_clk_src",
+					"core_clk", "vsync_clk";
+
 		mdss_fb0: qcom,mdss_fb_primary {
 			cell-index = <0>;
 			compatible = "qcom,mdss-fb";
@@ -137,6 +145,8 @@
 		gdsc-supply = <&gdsc_mdss>;
 		vdda-supply = <&pm8941_l2>;
 		vddio-supply = <&pm8941_l12>;
+        vdds-supply = <&vsp_vreg>;
+        vddn-supply = <&vsn_vreg>;
 		ranges = <0xfd922800 0xfd922800 0x1f8
 			0xfd922b00 0xfd922b00 0x280
 			0xfd922d80 0xfd922d80 0x30
@@ -211,6 +221,8 @@
 
 			vdd-supply = <&pm8941_l22>;
 			vddio-supply = <&pm8941_l12>;
+            vdds-supply = <&vsp_vreg>;
+            vddn-supply = <&vsn_vreg>;
 			qcom,mdss-mdp = <&mdss_mdp>;
 			clocks = <&clock_mmss clk_mdss_byte0_clk>,
 				 <&clock_mmss clk_mdss_pclk0_clk>,
@@ -218,16 +230,15 @@
 			clock-names =	"byte_clk", "pixel_clk", "core_clk";
 
 			qcom,platform-reset-gpio = <&pm8941_gpios 19 0>;
-			qcom,platform-enable-gpio = <&msmgpio 58 0>;
 			qcom,platform-te-gpio = <&msmgpio 12 0>;
 
 			qcom,platform-strength-ctrl = [ff 06];
 			qcom,platform-bist-ctrl = [00 00 b1 ff 00 00];
 			qcom,platform-regulator-settings = [03 09 03 00 20 00 01];
 			qcom,platform-lane-config = [00 00 00 00 00 00 00 01 97
-				00 00 00 00 05 00 00 01 97
-				00 00 00 00 0a 00 00 01 97
-				00 00 00 00 0f 00 00 01 97
+				00 00 00 00 00 00 00 01 97
+				00 00 00 00 00 00 00 01 97
+				00 00 00 00 00 00 00 01 97
 				00 c0 00 00 00 00 00 01 bb];
 		};
 

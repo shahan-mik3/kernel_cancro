@@ -26,19 +26,20 @@
 	qcom,mdss_dsi@0 {
 		hw-config = "single_dsi";
 		qcom,mdss_dsi_ctrl0@fd922800 {
-			qcom,dsi-pref-prim-pan = <&dsi_tosh_720_vid>;
+            qcom,dsi-pref-prim-pan = <&dsi_sharp_fhd_vid>;
 		};
+    };
+
+    qcom,mdss_dsi_sharp_fhd_video {
+		status = "ok";
+		qcom,cont-splash-enabled;
+        qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
 	};
 
 	qcom,mdss_dsi_lgd_fhd_video {
 		status = "ok";
 		qcom,cont-splash-enabled;
 	};
-
-    qcom,mdss_dsi_sharp_fhd_video {
-		status = "ok";
-		qcom,cont-splash-enabled;
-    }
 
 	qcom,mdss_dsi_jdi_fhd_cmd {
 		status = "ok";
