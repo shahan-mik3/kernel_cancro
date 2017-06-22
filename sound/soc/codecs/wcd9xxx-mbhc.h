@@ -393,6 +393,7 @@ struct wcd9xxx_mbhc {
 	bool impedance_detect;
 	/* impedance of hphl and hphr */
 	uint32_t zl, zr;
+    uint32_t impedance_offset;
 
 	u32 rco_clk_rate;
 

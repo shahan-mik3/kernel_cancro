@@ -567,7 +567,11 @@ config SND_SOC_ML26124
 	tristate
 
 config SND_SOC_TPA6130A2
-	tristate
+	tristate "TI's TPA6130A2 headset PA support"
+	depends on I2C
+	default n
+	help
+		Enable support for TI TPA6130A2 chip
 
 config SND_SOC_MSM_STUB
 	tristate

@@ -32,6 +32,7 @@
 #include "qdsp6v2/msm-pcm-routing-v2.h"
 #include "../codecs/wcd9xxx-common.h"
 #include "../codecs/wcd9320.h"
+#include "msm8974.h"
 
 #define DRV_NAME "msm8974-asoc-taiko"
 
@@ -122,7 +123,7 @@ static struct wcd9xxx_mbhc_config mbhc_cfg = {
 	.mclk_rate = TAIKO_EXT_CLK_RATE,
 	.gpio = 0,
 	.gpio_irq = 0,
-	.gpio_level_insert = 1,
+	.gpio_level_insert = 0,
 	.detect_extn_cable = true,
 	.micbias_enable_flags = 1 << MBHC_MICBIAS_ENABLE_THRESHOLD_HEADSET,
 	.insert_detect = true,
@@ -134,26 +135,7 @@ static struct wcd9xxx_mbhc_config mbhc_cfg = {
 	.do_recalibration = true,
 	.use_vddio_meas = true,
 	.enable_anc_mic_detect = false,
-	.hw_jack_type = SIX_POLE_JACK,
-};
-
-struct msm_auxpcm_gpio {
-	unsigned gpio_no;
-	const char *gpio_name;
-};
-
-struct msm_auxpcm_ctrl {
-	struct msm_auxpcm_gpio *pin_data;
-	u32 cnt;
-	void __iomem *mux;
-};
-
-struct msm8974_asoc_mach_data {
-	int mclk_gpio;
-	u32 mclk_freq;
-	int us_euro_gpio;
-	struct msm_auxpcm_ctrl *pri_auxpcm_ctrl;
-	struct msm_auxpcm_ctrl *sec_auxpcm_ctrl;
+	.hw_jack_type = FOUR_POLE_JACK,
 };
 
 #define GPIO_NAME_INDEX 0
