@@ -31,7 +31,7 @@
 			linux,reserve-contiguous-region;
 			linux,reserve-region;
 			linux,remove-completely;
-			reg = <0x5a00000 0x2100000>;
+			reg = <0x5500000 0x2600000>;
 			label = "peripheral_mem";
 		};
 
@@ -1903,6 +1903,8 @@
 
 &gdsc_venus {
 	qcom,skip-logic-collapse;
+    qcom,retain-periph;
+    qcom,retain-mem;
 };
 
 &sdhc_1 {
