@@ -846,7 +846,7 @@
 			"MIC BIAS2 External", "ANCRight Headset Mic",
 			"AMIC4", "MIC BIAS1 External",
 			"MIC BIAS1 External", "ANCLeft Headset Mic",
-			"DMIC1", "MIC BIAS3 External",
+			"AMIC5", "MIC BIAS3 External",
 			"MIC BIAS3 External", "Analog Mic6",
 			"DMIC2", "MIC BIAS1 External",
 			"MIC BIAS1 External", "Digital Mic2",
