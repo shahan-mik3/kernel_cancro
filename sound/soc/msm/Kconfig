@@ -149,7 +149,6 @@ config SND_SOC_MSM8974
 	select SND_SOC_MSM_STUB
 	select SND_SOC_MSM_HOSTLESS_PCM
 	select SND_SOC_WCD9320
-	select SND_SOC_TFA98XX
 	select SND_DYNAMIC_MINORS
 	select AUDIO_OCMEM
 	select DOLBY_DAP
@@ -241,7 +240,6 @@ config SND_SOC_APQ8084
 	select SND_SOC_CPE
 	select DOLBY_DS2
 	select SND_HWDEP
-	select SND_SOC_TFA98XX
 	help
 	 To add support for SoC audio on APQ8084.
 	 This will enable sound soc drivers which
@@ -354,8 +352,4 @@ config SND_SOC_MDM9640
 	 interfaces with DSP, also it will enable
 	 the machine drivers and the corresponding
 	 DAI-links.
-
-config MACH_SHINANO
-    bool "mach shinano"
-    default y
 endmenu
