@@ -1,2 +1,0 @@
-obj-$(CONFIG_SND_SOC_TFA98XX) += NXP_I2C.o
-
