@@ -3918,10 +3918,7 @@ static inline int bms_read_properties(struct qpnp_bms_chip *chip)
 	SPMI_PROP_READ(r_sense_uohm, "r-sense-uohm", rc);
 	SPMI_PROP_READ(v_cutoff_uv, "v-cutoff-uv", rc);
 
-	if (get_hw_version_major() == 5 && get_hw_version_minor() > 3)
-		SPMI_PROP_READ(max_voltage_uv, "max-voltage-uv-x5", rc);
-	else
-		SPMI_PROP_READ(max_voltage_uv, "max-voltage-uv", rc);
+    SPMI_PROP_READ(max_voltage_uv, "max-voltage-uv", rc);
 
 	SPMI_PROP_READ(r_conn_mohm, "r-conn-mohm", rc);
 	SPMI_PROP_READ(chg_term_ua, "chg-term-ua", rc);
