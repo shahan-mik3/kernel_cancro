@@ -1460,7 +1460,7 @@ qpnp_chg_usb_chg_gone_irq_handler(int irq, void *_chip)
 		schedule_delayed_work(&chip->arb_stop_work,
 			msecs_to_jiffies(ARB_STOP_WORK_MS));
 		/* both usb_in and chg_gone are set */
-		__cancel_delayed_work(&chip->invalid_charger_work);
+		cancel_delayed_work(&chip->invalid_charger_work);
 		schedule_delayed_work(&chip->invalid_charger_work,
 					msecs_to_jiffies(1500));
 	}
@@ -1790,7 +1790,7 @@ qpnp_chg_usb_usbin_valid_irq_handler(int irq, void *_chip)
 
 			qpnp_chg_usb_suspend_enable(chip, 0);
 			qpnp_chg_iusb_trim_set(chip, chip->usb_trim_default);
-			__cancel_delayed_work(&chip->invalid_charger_work);
+			cancel_delayed_work(&chip->invalid_charger_work);
 			schedule_delayed_work(&chip->invalid_charger_work,
 					msecs_to_jiffies(1000));
 			chip->aicl_settled = false;
@@ -1827,7 +1827,7 @@ qpnp_chg_usb_usbin_valid_irq_handler(int irq, void *_chip)
 				last_thermal_level = chip->thermal_levels - 1;
 			}
 
-			__cancel_delayed_work(&chip->invalid_charger_work);
+			cancel_delayed_work(&chip->invalid_charger_work);
 			/* Charger only mode */
 			if (get_powerup_reason() &
 				(1 << PU_REASON_EVENT_USB_CHG))
@@ -2848,7 +2848,7 @@ qpnp_batt_external_power_changed(struct power_supply *psy)
 			if (ret.intval == USB_SUSPEND_UA)
 				qpnp_chg_usb_suspend_enable(chip, 1);
 			qpnp_chg_iusbmax_set(chip, QPNP_CHG_I_MAX_MIN_100);
-			__cancel_delayed_work(&chip->invalid_charger_work);
+			cancel_delayed_work(&chip->invalid_charger_work);
 		} else if (qpnp_chg_is_usb_chg_plugged_in(chip)) {
 			qpnp_chg_usb_suspend_enable(chip, 0);
 			if (qpnp_is_dc_higher_prio(chip)
@@ -2888,7 +2888,7 @@ qpnp_batt_external_power_changed(struct power_supply *psy)
 						charger_monitor);
 				schedule_work(&chip->reduce_power_stage_work);
 			}
-			__cancel_delayed_work(&chip->invalid_charger_work);
+			cancel_delayed_work(&chip->invalid_charger_work);
 		}
 	}
 
@@ -4157,13 +4157,13 @@ static void qpnp_invalid_charger_work(struct work_struct *work)
 	if (usb_present &&
 		batt_present &&
 		batt_status == POWER_SUPPLY_STATUS_DISCHARGING) {
-		power_supply_set_supply_type(chip->usb_psy,
-			POWER_SUPPLY_TYPE_USB);
+		/*power_supply_set_supply_type(chip->usb_psy,
+			POWER_SUPPLY_TYPE_USB);*/
 		power_supply_set_online(chip->usb_psy, true);
 		power_supply_set_current_limit(chip->usb_psy, 500000);
 	} else if (!usb_present && batt_present && ret.intval > 0) {
-		power_supply_set_supply_type(chip->usb_psy,
-			POWER_SUPPLY_TYPE_USB);
+		/*power_supply_set_supply_type(chip->usb_psy,
+			POWER_SUPPLY_TYPE_USB);*/
 		power_supply_set_online(chip->usb_psy, false);
 		power_supply_set_current_limit(chip->usb_psy, 0);
 	}
