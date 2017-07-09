@@ -60,7 +60,6 @@ struct msm_sensor_fn_t {
 #endif
 	int (*sensor_power_down) (struct msm_sensor_ctrl_t *);
 	int (*sensor_power_up) (struct msm_sensor_ctrl_t *);
-	int (*sensor_match_id) (struct msm_sensor_ctrl_t *);
 };
 
 struct msm_sensor_ctrl_t {
@@ -79,6 +78,7 @@ struct msm_sensor_ctrl_t {
 	uint8_t sensor_v4l2_subdev_info_size;
 	struct v4l2_subdev_ops *sensor_v4l2_subdev_ops;
 	struct msm_sensor_fn_t *func_tbl;
+	int (*sensor_match_id) (struct msm_sensor_ctrl_t *);
 	struct msm_camera_i2c_reg_setting stop_setting;
 	void *misc_regulator;
 	enum msm_sensor_state_t sensor_state;

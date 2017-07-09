@@ -31,6 +31,7 @@ struct msm_flash_fn_t {
 	int32_t (*flash_led_release)(struct msm_led_flash_ctrl_t *);
 	int32_t (*flash_led_off)(struct msm_led_flash_ctrl_t *);
 	int32_t (*flash_led_low)(struct msm_led_flash_ctrl_t *);
+    int32_t (*flash_led_torch)(struct msm_led_flash_ctrl_t *, uint16_t value);
 	int32_t (*flash_led_high)(struct msm_led_flash_ctrl_t *);
 };
 
@@ -39,6 +40,7 @@ struct msm_led_flash_reg_t {
 	struct msm_camera_i2c_reg_setting *off_setting;
 	struct msm_camera_i2c_reg_setting *release_setting;
 	struct msm_camera_i2c_reg_setting *low_setting;
+    struct msm_camera_i2c_reg_setting *torch_setting;
 	struct msm_camera_i2c_reg_setting *high_setting;
 };
 
@@ -68,6 +70,7 @@ struct msm_led_flash_ctrl_t {
 	enum cci_i2c_master_t cci_i2c_master;
 	enum msm_camera_led_config_t led_state;
 	uint32_t subdev_id;
+    int torch_brightness;
 	struct msm_pinctrl_info pinctrl_info;
 };
 
@@ -90,5 +93,6 @@ int msm_flash_led_init(struct msm_led_flash_ctrl_t *fctrl);
 int msm_flash_led_release(struct msm_led_flash_ctrl_t *fctrl);
 int msm_flash_led_off(struct msm_led_flash_ctrl_t *fctrl);
 int msm_flash_led_low(struct msm_led_flash_ctrl_t *fctrl);
+int msm_flash_led_torch(struct msm_led_flash_ctrl_t *fctrl, uint16_t value);
 int msm_flash_led_high(struct msm_led_flash_ctrl_t *fctrl);
 #endif

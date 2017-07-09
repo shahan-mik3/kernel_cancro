@@ -14,9 +14,11 @@
 #define pr_fmt(fmt) "%s:%d " fmt, __func__, __LINE__
 
 #include <linux/module.h>
+#include <asm/bootinfo.h>
 #include "msm_led_flash.h"
 
 static struct led_trigger *torch_trigger;
+static struct msm_led_flash_ctrl_t *fctrl;
 
 static void msm_led_torch_brightness_set(struct led_classdev *led_cdev,
 				enum led_brightness value)
@@ -25,24 +27,37 @@ static void msm_led_torch_brightness_set(struct led_classdev *led_cdev,
 		pr_err("No torch trigger found, can't set brightness\n");
 		return;
 	}
+	if (get_hw_version_major() == 4)
+		led_trigger_event(torch_trigger, value);
+	else /* x3 use dual led */
+		led_trigger_event(torch_trigger, value / 2);
 
-	led_trigger_event(torch_trigger, value);
+	fctrl->torch_brightness = value;
+
 };
+
+static enum led_brightness msm_led_torch_brightness_get(struct led_classdev *led_cdev)
+{
+	return fctrl->torch_brightness;
+}
 
 static struct led_classdev msm_torch_led[MAX_LED_TRIGGERS] = {
 	{
 		.name		= "torch-light0",
 		.brightness_set	= msm_led_torch_brightness_set,
+        .brightness_get	= msm_led_torch_brightness_get,
 		.brightness	= LED_OFF,
 	},
 	{
 		.name		= "torch-light1",
 		.brightness_set	= msm_led_torch_brightness_set,
+        .brightness_get	= msm_led_torch_brightness_get,
 		.brightness	= LED_OFF,
 	},
 	{
 		.name		= "torch-light2",
 		.brightness_set	= msm_led_torch_brightness_set,
+        .brightness_get	= msm_led_torch_brightness_get,
 		.brightness	= LED_OFF,
 	},
 };
@@ -51,7 +66,7 @@ int32_t msm_led_torch_create_classdev(struct platform_device *pdev,
 				void *data)
 {
 	int32_t i, rc = 0;
-	struct msm_led_flash_ctrl_t *fctrl =
+	fctrl =
 		(struct msm_led_flash_ctrl_t *)data;
 
 	if (!fctrl) {

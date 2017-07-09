@@ -30,11 +30,11 @@ static long msm_led_flash_subdev_ioctl(struct v4l2_subdev *sd,
 		return -EINVAL;
 	}
 	fctrl = v4l2_get_subdevdata(sd);
-	if (!fctrl) {
+	if (!fctrl || !fctrl->func_tbl) {
 		pr_err("fctrl NULL\n");
 		return -EINVAL;
 	}
-	switch (cmd) {
+	/*switch (cmd) {
 	case VIDIOC_MSM_SENSOR_GET_SUBDEV_ID:
 		return fctrl->func_tbl->flash_get_subdev_id(fctrl, argp);
 	case VIDIOC_MSM_FLASH_LED_DATA_CFG:
@@ -46,7 +46,7 @@ static long msm_led_flash_subdev_ioctl(struct v4l2_subdev *sd,
 	default:
 		pr_err_ratelimited("invalid cmd %d\n", cmd);
 		return -ENOIOCTLCMD;
-	}
+	}*/
 }
 
 static struct v4l2_subdev_core_ops msm_flash_subdev_core_ops = {

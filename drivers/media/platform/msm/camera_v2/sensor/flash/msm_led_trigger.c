@@ -15,6 +15,7 @@
 
 #include <linux/module.h>
 #include "msm_led_flash.h"
+#include <asm/bootinfo.h>
 
 #define FLASH_NAME "camera-led-flash"
 
@@ -64,6 +65,7 @@ static int32_t msm_led_trigger_config(struct msm_led_flash_ctrl_t *fctrl,
 		for (i = 0; i < fctrl->torch_num_sources; i++)
 			if (fctrl->torch_trigger[i])
 				led_trigger_event(fctrl->torch_trigger[i], 0);
+        fctrl->torch_brightness = 0;
 		break;
 
 	case MSM_CAMERA_LED_LOW:
@@ -80,6 +82,7 @@ static int32_t msm_led_trigger_config(struct msm_led_flash_ctrl_t *fctrl,
 				}
 				led_trigger_event(fctrl->torch_trigger[i],
 						curr_l);
+                fctrl->torch_brightness = curr_l;
 			}
 		break;
 
@@ -115,6 +118,7 @@ static int32_t msm_led_trigger_config(struct msm_led_flash_ctrl_t *fctrl,
 		for (i = 0; i < fctrl->torch_num_sources; i++)
 			if (fctrl->torch_trigger[i])
 				led_trigger_event(fctrl->torch_trigger[i], 0);
+        fctrl->torch_brightness = 0;
 		break;
 
 	default:
@@ -181,6 +185,11 @@ static int32_t msm_led_trigger_probe(struct platform_device *pdev)
 			pr_err("invalid count qcom,flash-source %d\n", count);
 			return -EINVAL;
 		}
+		if (get_hw_version_major() == 4)
+			/* X4 - use single led */
+			count = 1;
+		else    /* X3 - use dual   led */
+			count = 2;
 		fctrl.flash_num_sources = count;
 		for (i = 0; i < fctrl.flash_num_sources; i++) {
 			flash_src_node = of_parse_phandle(of_node,
@@ -224,6 +233,15 @@ static int32_t msm_led_trigger_probe(struct platform_device *pdev)
 			}
 
 			of_node_put(flash_src_node);
+
+			if (get_hw_version_major() == 4) {
+				/* X4 - use single led */
+				fctrl.flash_op_current[i] = 1000;
+				fctrl.flash_max_current[i] = 1000;
+			} else {/* X3 - use dual   led */
+				fctrl.flash_op_current[i] = 500;
+				fctrl.flash_max_current[i] = 500;
+			}
 
 			CDBG("max_current[%d] %d\n",
 				i, fctrl.flash_op_current[i]);
@@ -286,6 +304,16 @@ static int32_t msm_led_trigger_probe(struct platform_device *pdev)
 					of_node_put(flash_src_node);
 					continue;
 				}
+
+				if (get_hw_version_major() == 4) {
+					/* X4 - use single led */
+					fctrl.torch_op_current[i] = 200;
+					fctrl.torch_max_current[i] = 200;
+				} else {/* X3 - use dual   led */
+					fctrl.torch_op_current[i] = 100;
+					fctrl.torch_max_current[i] = 200;
+				}
+
 			}
 
 			of_node_put(flash_src_node);
@@ -312,6 +340,10 @@ static int32_t msm_led_trigger_probe(struct platform_device *pdev)
 static int __init msm_led_trigger_add_driver(void)
 {
 	CDBG("called\n");
+
+	if(get_hw_version_major() == 5)
+		return 0;
+
 	return platform_driver_probe(&msm_led_trigger_driver,
 		msm_led_trigger_probe);
 }
