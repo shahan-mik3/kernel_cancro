@@ -46,47 +46,41 @@
 #include <linux/memblock.h>
 
 #define XIAOMI_PERSISTENT_RAM_SIZE SZ_2M
-#define XIAOMI_RAM_CONSOLE_SIZE (256 * SZ_1K)
-#define XIAOMI_RAM_CONSOLE_BASE (SZ_2G - SZ_2M)
+#define XIAOMI_RAM_CONSOLE_SIZE XIAOMI_PERSISTENT_RAM_SIZE / 2
+#define XIAOMI_RAM_CONSOLE_BASE memblock_end_of_DRAM() - XIAOMI_PERSISTENT_RAM_SIZE
 
-static struct ramoops_platform_data xiaomi_ramoops_data = {
-	.console_size = XIAOMI_RAM_CONSOLE_SIZE,
-	.mem_address  = XIAOMI_RAM_CONSOLE_BASE,
-	.mem_size     = XIAOMI_PERSISTENT_RAM_SIZE,
-    .pmsg_size = XIAOMI_RAM_CONSOLE_SIZE,
-    .dump_oops = 1,
-};
+static struct ramoops_platform_data xiaomi_ramoops_data;
 
 static struct platform_device xiaomi_ramoops_dev = {
-	.name = "ramoops",
-	.dev = {
-		.platform_data = &xiaomi_ramoops_data,
-	}
+    .name = "ramoops",
+    .dev = {
+        .platform_data = &xiaomi_ramoops_data,
+    }
 };
 
 static void __init xiaomi_add_persist_ram_device(void)
 {
-	int ret = memblock_reserve(memblock_end_of_DRAM() - SZ_2M, XIAOMI_PERSISTENT_RAM_SIZE);
+    int ret = memblock_reserve(XIAOMI_RAM_CONSOLE_BASE, XIAOMI_PERSISTENT_RAM_SIZE);
 
-	if (ret)
-		pr_err("%s: failed to initialize persistent ram\n", __func__);
+    if (ret)
+        pr_err("%s: failed to initialize persistent ram\n", __func__);
 }
 
 static void __init xiaomi_add_persistent_device(void)
 {
-	int ret;
+    int ret;
 
-	if (!xiaomi_ramoops_data.mem_address) {
-		pr_err("%s: No allocated memory for ramoops\n", __func__);
-		return;
-	}
+    xiaomi_ramoops_data.console_size = XIAOMI_RAM_CONSOLE_SIZE;
+    xiaomi_ramoops_data.mem_address  = XIAOMI_RAM_CONSOLE_BASE;
+    xiaomi_ramoops_data.mem_size     = XIAOMI_PERSISTENT_RAM_SIZE;
+    xiaomi_ramoops_data.pmsg_size = XIAOMI_RAM_CONSOLE_SIZE;
+    xiaomi_ramoops_data.dump_oops = 1;
 
-	ret = platform_device_register(&xiaomi_ramoops_dev);
-	if (ret)
-		pr_err("%s: Unable to register platform device\n", __func__);
+    ret = platform_device_register(&xiaomi_ramoops_dev);
+    if (ret)
+        pr_err("%s: Unable to register platform device\n", __func__);
 }
 #endif
-
 
 void __init msm_8974_reserve(void)
 {
