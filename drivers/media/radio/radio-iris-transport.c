@@ -206,7 +206,7 @@ static void radio_hci_smd_deregister(void)
 	fmsmd_set = 0;
 }
 
-int radio_hci_smd_init(void)
+static int radio_hci_smd_init(void)
 {
 	return radio_hci_smd_register_dev(&hs);
 }
