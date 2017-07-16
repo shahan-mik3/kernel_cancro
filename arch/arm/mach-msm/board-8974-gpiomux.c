@@ -1042,7 +1042,7 @@ static struct msm_gpiomux_config cancro_v4_gpio_configs[] __initdata = {
 	{	.gpio	= 11,
 		.settings = {								},							},
 	{	.gpio	= 12,
-		.settings = {								},							},
+		.settings = {[GPIOMUX_ACTIVE] = &lcd_te_act_cfg, [GPIOMUX_SUSPENDED] = &lcd_te_sus_cfg,},							},
 	{	.gpio	= 13,
 		.settings = {[GPIOMUX_SUSPENDED] = &gpio_suspend_config[2],		},							},
 	{	.gpio	= 14,
