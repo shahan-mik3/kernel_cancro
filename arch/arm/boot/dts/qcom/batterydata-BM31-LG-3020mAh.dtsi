@@ -21,6 +21,7 @@ qcom,BM31-LG-3020mAh-data {
 	qcom,chg-term-ua = <200000>;
 	qcom,batt-id-kohm = <50>;
 	xiaomi,batt-version = <4>;
+    qcom,battery-type = "BM31 3020 mAH LG";
 
 	qcom,rbatt-sf-lut {
 		qcom,lut-col-legend = <(-20) (-10) 0 5 10 15 20 25 30 40 60>;
