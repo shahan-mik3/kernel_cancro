@@ -14,7 +14,7 @@
 
 #include "msm8974pro-ab-pm8941.dtsi"
 #include "msm8974-mtp.dtsi"
-#include "msm8974-camera-sensor-mtp.dtsi"
+#include "msm8974-camera-sensor-mtp-xiaomi.dtsi"
 
 / {
 	model = "Xiaomi Communications, Inc. Mi 3 (W)CDMA";

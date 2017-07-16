@@ -15,18 +15,18 @@
 
 #include "msm8974pro-ac-pm8941.dtsi"
 #include "msm8974-mtp.dtsi"
-#include "msm8974-camera-sensor-mtp.dtsi"
+#include "msm8974-camera-sensor-mtp-xiaomi.dtsi"
 
 / {
-	model = "Qualcomm MSM 8974Pro-AC MTP V4";
+	model = "Xiaomi Communications, Inc. Mi 4 (W)CDMA/LTE";
 	compatible = "qcom,msm8974-mtp", "qcom,msm8974", "qcom,mtp";
 	qcom,board-id = <8 0x400>;
 };
 
 &imx214 {
 		cam_vaf-supply = <&pm8941_l23>;
-                qcom,cam-vreg-min-voltage = <1225000 0 2850000 3000000>;
-                qcom,cam-vreg-max-voltage = <1225000 0 2850000 3000000>;
+        qcom,cam-vreg-min-voltage = <1225000 0 2850000 3000000>;
+        qcom,cam-vreg-max-voltage = <1225000 0 2850000 3000000>;
 		qcom,actuator-src = <&actuator0>;
 };
 
@@ -43,8 +43,8 @@
 		cam_vana-supply = <&pm8941_l17>;
 		cam_vio-supply = <&pm8941_lvs3>;
 		cam_vaf-supply = <&pm8941_l23>;
-                qcom,cam-vreg-min-voltage = <1225000 0 2850000 3000000>;
-                qcom,cam-vreg-max-voltage = <1225000 0 2850000 3000000>;
+        qcom,cam-vreg-min-voltage = <1225000 0 2850000 3000000>;
+        qcom,cam-vreg-max-voltage = <1225000 0 2850000 3000000>;
 		qcom,actuator-src = <&actuator0>;
 };
 

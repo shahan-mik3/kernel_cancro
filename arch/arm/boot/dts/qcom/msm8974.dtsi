@@ -153,13 +153,6 @@
 			label = "qseecom_mem";
 		};
 
-        fb_mem: fb_region {
-			linux,reserve-contiguous-region;
-            linux,reserve-region;
-			reg = <0 0xFF0000>;
-			label = "fb_mem";
-		};
-
 		audio_mem: audio_region@0 {
 			linux,reserve-contiguous-region;
 			linux,reserve-region;
@@ -186,7 +179,7 @@
 	soc: soc { };
 };
 
-#include "msm8974-camera.dtsi"
+#include "msm8974-camera-xiaomi.dtsi"
 #include "msm8974-coresight.dtsi"
 #include "msm-gdsc.dtsi"
 #include "msm8974-ion.dtsi"

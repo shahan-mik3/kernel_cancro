@@ -1,0 +1,19 @@
+ccflags-y += -Idrivers/media/platform/msm/camera_v2_xiaomi
+ccflags-y += -Idrivers/media/platform/msm/camera_v2_xiaomi/sensor
+ccflags-y += -Idrivers/media/platform/msm/camera_v2_xiaomi/codecs
+ccflags-y += -Idrivers/media/platform/msm/camera_v2_xiaomi/isps
+ccflags-y += -Idrivers/media/platform/msm/camera_v2_xiaomi/pproc
+ccflags-y += -Idrivers/media/platform/msm/camera_v2_xiaomi/msm_vb2
+ccflags-y += -Idrivers/media/platform/msm/camera_v2_xiaomi/camera
+ccflags-y += -Idrivers/media/platform/msm/camera_v2_xiaomi/jpeg_10
+
+obj-$(CONFIG_MSMB_CAMERA) += msm.o
+obj-$(CONFIG_MSMB_CAMERA) += camera/
+obj-$(CONFIG_MSMB_CAMERA) += msm_vb2/
+obj-$(CONFIG_MSMB_CAMERA) += sensor/
+obj-$(CONFIG_MSMB_CAMERA) += isp/
+obj-$(CONFIG_MSMB_CAMERA) += ispif/
+obj-$(CONFIG_MSMB_JPEG) += jpeg_10/
+obj-$(CONFIG_MSMB_CAMERA) += msm_buf_mgr/
+obj-$(CONFIG_MSMB_CAMERA) += pproc/
+obj-$(CONFIG_MSMB_CAMERA) += gemini/
