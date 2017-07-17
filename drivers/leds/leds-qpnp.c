@@ -1401,7 +1401,7 @@ static int qpnp_flash_set(struct qpnp_led_data *led)
 				goto error_reg_write;
 			}
 
-			/*qpnp_led_masked_write(led,
+			qpnp_led_masked_write(led,
 				FLASH_WATCHDOG_TMR(led->base),
 				FLASH_WATCHDOG_MASK,
 				led->flash_cfg->duration);
@@ -1410,7 +1410,7 @@ static int qpnp_flash_set(struct qpnp_led_data *led)
 					"Max current reg write failed(%d)\n",
 					rc);
 				goto error_reg_write;
-			}*/
+			}
 
 			rc = qpnp_led_masked_write(led,
 				FLASH_ENABLE_CONTROL(led->base),
