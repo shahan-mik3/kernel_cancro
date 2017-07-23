@@ -1579,7 +1579,7 @@ static void binder_transaction_buffer_release(struct binder_proc *proc,
 			binder_debug(BINDER_DEBUG_TRANSACTION,
 				     "        ref %d desc %d (node %d)\n",
 				     ref->debug_id, ref->desc, ref->node->debug_id);
-			binder_dec_ref(ref, hdr->type == BINDER_TYPE_HANDLE);
+			binder_dec_ref(&ref, hdr->type == BINDER_TYPE_HANDLE);
 		} break;
 
 		case BINDER_TYPE_FD: {
@@ -1670,9 +1670,6 @@ static int binder_translate_binder(struct flat_binder_object *fp,
 				  (u64)node->cookie);
 		return -EINVAL;
 	}
-	if (security_binder_transfer_binder(proc->tsk, target_proc->tsk))
-		return -EPERM;
-
 	ref = binder_get_ref_for_node(target_proc, node);
 	if (!ref)
 		return -EINVAL;
@@ -1710,9 +1707,6 @@ static int binder_translate_handle(struct flat_binder_object *fp,
 				  proc->pid, thread->pid, fp->handle);
 		return -EINVAL;
 	}
-	if (security_binder_transfer_binder(proc->tsk, target_proc->tsk))
-		return -EPERM;
-
 	if (ref->node->proc == target_proc) {
 		if (fp->hdr.type == BINDER_TYPE_HANDLE)
 			fp->hdr.type = BINDER_TYPE_BINDER;
@@ -1779,11 +1773,6 @@ static int binder_translate_fd(int fd,
 				  proc->pid, thread->pid, fd);
 		ret = -EBADF;
 		goto err_fget;
-	}
-	ret = security_binder_transfer_file(proc->tsk, target_proc->tsk, file);
-	if (ret < 0) {
-		ret = -EPERM;
-		goto err_security;
 	}
 
 	target_fd = task_get_unused_fd_flags(target_proc, O_CLOEXEC);
