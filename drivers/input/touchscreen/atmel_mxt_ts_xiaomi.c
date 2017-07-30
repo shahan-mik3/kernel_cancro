@@ -4739,10 +4739,15 @@ static int mxt_suspend(struct device *dev)
 
 		mutex_unlock(&input_dev->mutex);
 	} else {
-		if (!mxt_prevent_sleep())
-			mxt_disable_irq(data);
-
 		mutex_lock(&input_dev->mutex);
+
+		if (data->is_stopped) {
+			mutex_unlock(&input_dev->mutex);
+			return 0;
+		}
+
+        if (!mxt_prevent_sleep())
+			mxt_disable_irq(data);
 
 		if (input_dev->users)
 			mxt_stop(data);
@@ -4816,7 +4821,14 @@ static int mxt_resume(struct device *dev)
 
 		mutex_unlock(&input_dev->mutex);
 	} else {
-		mxt_enable_irq(data);
+		mutex_lock(&input_dev->mutex);
+
+        if (!data->is_stopped) {
+			mutex_unlock(&input_dev->mutex);
+			return 0;
+        }
+
+        mxt_enable_irq(data);
 
 		if (data->regulator_vdd && data->regulator_avdd && data->regulator_vddio) {
 			ret = regulator_enable(data->regulator_vdd);
@@ -4835,8 +4847,6 @@ static int mxt_resume(struct device *dev)
 				"Atmel regulator enable for vddio failed: %d\n", ret);
 			}
 		}
-
-		mutex_lock(&input_dev->mutex);
 
 		if (input_dev->users)
 			mxt_start(data);
