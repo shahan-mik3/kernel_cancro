@@ -149,7 +149,7 @@
 	qcom,leds@e200 {
 		status = "okay";
 
-		qcom,kpdbl1 {
+		led_kpdbl1:qcom,kpdbl1 {
 			label = "kpdbl";
 			linux,name = "button-backlight";
 			qcom,mode = "pwm";
@@ -164,7 +164,7 @@
 			qcom,in-order-command-processing;
 		};
 
-		qcom,kpdbl2 {
+		led_kpdbl2:qcom,kpdbl2 {
 			label = "kpdbl";
 			linux,name = "button-backlight1";
 			qcom,mode = "pwm";

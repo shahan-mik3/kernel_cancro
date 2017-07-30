@@ -313,6 +313,7 @@
 			debounce-interval = <15>;
 		};
 	};
+
 };
 
 &pm8941_gpios {
@@ -357,6 +358,13 @@
 	qcom,use-default-rds-trim = <0>;
 };
 
+&led_kpdbl1 {
+    qcom,max-brightness = <20>;
+};
+
+&led_kpdbl2 {
+    qcom,max-brightness = <20>;
+};
 
 / {
 	mtp_batterydata: qcom,battery-data {

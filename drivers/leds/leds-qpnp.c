@@ -515,6 +515,7 @@ struct kpdbl_config_data {
 	struct pwm_duty_cycles  *duty_cycles;
 	struct lut_params	lut_params;
 	u8	pwm_mode;
+    int max_brightness;
 };
 
 /**
@@ -2034,7 +2035,7 @@ static int qpnp_led_set_max_brightness(struct qpnp_led_data *led)
 			led->cdev.max_brightness = led->max_current;
 		break;
 	case QPNP_ID_KPDBL:
-		led->cdev.max_brightness = KPDBL_MAX_LEVEL;
+		led->cdev.max_brightness = led->kpdbl_cfg->max_brightness;
 		break;
 	default:
 		dev_err(&led->spmi_dev->dev, "Invalid LED(%d)\n", led->id);
@@ -3809,6 +3810,12 @@ static int qpnp_get_config_kpdbl(struct qpnp_led_data *led,
 
 	led->kpdbl_cfg->always_on =
 			of_property_read_bool(node, "qcom,always-on");
+
+    rc = of_property_read_u32(node, "qcom,max-brightness", &val);
+	if (!rc)
+		led->kpdbl_cfg->max_brightness = val;
+	else
+		led->kpdbl_cfg->max_brightness = KPDBL_MAX_LEVEL;
 
 	return 0;
 }
