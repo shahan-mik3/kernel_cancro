@@ -29,7 +29,7 @@
 #include <linux/of_gpio.h>
 #include <asm/bootinfo.h>
 #include <mach/gpiomux.h>
-#if 0
+#ifdef CONFIG_FB
 #include <linux/notifier.h>
 #include <linux/fb.h>
 #endif
@@ -674,7 +674,7 @@ struct mxt_data {
 	u8 T100_reportid_max;
 	u8 T109_reportid;
 
-#if 0
+#ifdef CONFIG_FB
 	struct notifier_block fb_notif;
 #endif
 };
@@ -4881,7 +4881,7 @@ static int mxt_input_disable(struct input_dev *in_dev)
 	return error;
 }
 
-#if 0
+#ifdef CONFIG_FB
 static int fb_notifier_cb(struct notifier_block *self,
 			unsigned long event, void *data)
 {
@@ -4920,9 +4920,9 @@ static void configure_sleep(struct mxt_data *data)
 #else
 static void configure_sleep(struct mxt_data *data)
 {
-	data->input_dev->enable = mxt_input_enable;
+	/*data->input_dev->enable = mxt_input_enable;
 	data->input_dev->disable = mxt_input_disable;
-	data->input_dev->enabled = true;
+	data->input_dev->enabled = true;*/
 }
 #endif
 
