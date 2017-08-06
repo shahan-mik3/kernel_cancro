@@ -303,6 +303,7 @@ struct msm_vidc_inst {
 	bool dcvs_mode;
 	u32 operating_rate;
 	u32 sufficient_res_event_change_count;
+    bool operating_rate_from_user;
 };
 
 extern struct msm_vidc_drv *vidc_driver;

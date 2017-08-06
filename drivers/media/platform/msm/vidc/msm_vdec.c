@@ -1202,6 +1202,9 @@ int msm_vdec_s_parm(struct msm_vidc_inst *inst, struct v4l2_streamparm *a)
 		dprintk(VIDC_PROF, "reported fps changed for %pK: %d->%d\n",
 				inst, inst->prop.fps, fps);
 		inst->prop.fps = fps;
+        if (!inst->operating_rate_from_user && fps) {
+            inst->operating_rate = fps << 16;
+        }
 		msm_dcvs_init_load(inst);
 		msm_comm_scale_clocks_and_bus(inst);
 	}
@@ -2038,7 +2041,8 @@ int msm_vdec_inst_init(struct msm_vidc_inst *inst)
 	inst->buffer_mode_set[OUTPUT_PORT] = HAL_BUFFER_MODE_STATIC;
 	inst->buffer_mode_set[CAPTURE_PORT] = HAL_BUFFER_MODE_STATIC;
 	inst->prop.fps = 30;
-	inst->operating_rate = 0;
+	inst->operating_rate = inst->prop.fps << 16;
+    inst->operating_rate_from_user = false;
 
 	return rc;
 }
@@ -2561,6 +2565,7 @@ static int try_set_ctrl(struct msm_vidc_inst *inst, struct v4l2_ctrl *ctrl)
 		inst->operating_rate = ctrl->val;
 		dprintk(VIDC_DBG, "inst(%pK) operating rate changed to %d",
 			inst, inst->operating_rate >> 16);
+        inst->operating_rate_from_user = true;
 		msm_comm_scale_clocks_and_bus(inst);
 		break;
 	default:
