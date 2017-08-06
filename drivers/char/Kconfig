@@ -639,6 +639,15 @@ config MSM_ADSPRPC
 	  applications DSP processor. Say M if you want to enable this
 	  module.
 
+config MSM_ADSPRPC_MSM8974
+	tristate "Qualcomm ADSP RPC MSM8974 driver"
+	depends on MSM_SMD
+	help
+	  Provides a communication mechanism that allows for clients to
+	  make remote method invocations across processor boundary to
+	  applications DSP processor. Say M if you want to enable this
+	  module.
+
 config CSDIO_VENDOR_ID
 	hex "Card VendorId"
 	depends on MMC_GENERIC_CSDIO
