@@ -2042,8 +2042,8 @@ static struct snd_soc_dai_link msm8974_common_dai_links[] = {
 		.ignore_suspend = 1,
 	},
 	{
-		.name = "MSM8974 Compr",
-		.stream_name = "COMPR",
+		.name = "MSM8974 Compress",
+		.stream_name = "Compress",
 		.cpu_dai_name	= "MultiMedia4",
 		.platform_name  = "msm-compress-dsp",
 		.dynamic = 1,
@@ -2161,23 +2161,8 @@ static struct snd_soc_dai_link msm8974_common_dai_links[] = {
 	},
 	/* Multiple Tunnel instances */
 	{
-		.name = "MSM8974 Compr2",
-		.stream_name = "COMPR2",
-		.cpu_dai_name	= "MultiMedia6",
-		.platform_name  = "msm-compress-dsp",
-		.dynamic = 1,
-		.trigger = {SND_SOC_DPCM_TRIGGER_POST,
-			 SND_SOC_DPCM_TRIGGER_POST},
-		.codec_dai_name = "snd-soc-dummy-dai",
-		.codec_name = "snd-soc-dummy",
-		.ignore_suspend = 1,
-		.ignore_pmdown_time = 1,
-		 /* this dainlink has playback support */
-		.be_id = MSM_FRONTEND_DAI_MULTIMEDIA6,
-	},
-	{
-		.name = "MSM8974 Compr3",
-		.stream_name = "COMPR3",
+		.name = "MSM8974 Compress2",
+		.stream_name = "Compress2",
 		.cpu_dai_name	= "MultiMedia7",
 		.platform_name  = "msm-compress-dsp",
 		.dynamic = 1,
@@ -2191,9 +2176,9 @@ static struct snd_soc_dai_link msm8974_common_dai_links[] = {
 		.be_id = MSM_FRONTEND_DAI_MULTIMEDIA7,
 	},
 	{
-		.name = "MSM8974 Compr8",
-		.stream_name = "COMPR8",
-		.cpu_dai_name	= "MultiMedia8",
+		.name = "MSM8974 Compress3",
+		.stream_name = "Compress3",
+		.cpu_dai_name	= "MultiMedia10",
 		.platform_name  = "msm-compress-dsp",
 		.dynamic = 1,
 		.trigger = {SND_SOC_DPCM_TRIGGER_POST,
@@ -2203,7 +2188,22 @@ static struct snd_soc_dai_link msm8974_common_dai_links[] = {
 		.ignore_suspend = 1,
 		.ignore_pmdown_time = 1,
 		 /* this dainlink has playback support */
-		.be_id = MSM_FRONTEND_DAI_MULTIMEDIA8,
+		.be_id = MSM_FRONTEND_DAI_MULTIMEDIA10,
+	},
+	{
+		.name = "MSM8974 Compress8",
+		.stream_name = "Compress8",
+		.cpu_dai_name	= "MultiMedia15",
+		.platform_name  = "msm-compress-dsp",
+		.dynamic = 1,
+		.trigger = {SND_SOC_DPCM_TRIGGER_POST,
+			 SND_SOC_DPCM_TRIGGER_POST},
+		.codec_dai_name = "snd-soc-dummy-dai",
+		.codec_name = "snd-soc-dummy",
+		.ignore_suspend = 1,
+		.ignore_pmdown_time = 1,
+		 /* this dainlink has playback support */
+		.be_id = MSM_FRONTEND_DAI_MULTIMEDIA15,
 	},
 	{
 		.name = "QCHAT",
