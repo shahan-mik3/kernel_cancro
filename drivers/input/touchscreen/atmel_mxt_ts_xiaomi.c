@@ -4752,8 +4752,6 @@ static int mxt_suspend(struct device *dev)
 		if (input_dev->users)
 			mxt_stop(data);
 
-		mutex_unlock(&input_dev->mutex);
-
 		mxt_clear_touch_event(data);
 
 		if (data->regulator_vdd && data->regulator_avdd && data->regulator_vddio) {
@@ -4775,6 +4773,7 @@ static int mxt_suspend(struct device *dev)
 		}
 		data->is_stopped = 1;
 
+		mutex_unlock(&input_dev->mutex);
 	}
 
 
