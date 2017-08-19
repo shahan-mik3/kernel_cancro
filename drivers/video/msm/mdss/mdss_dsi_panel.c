@@ -602,7 +602,7 @@ static int mdss_dsi_panel_dispparam(struct mdss_panel_data *pdata, const char* c
 		return -EINVAL;
 	}
 
-    if (pdata->panel_info.panel_power_on == 0) {
+    if (pdata->panel_info.panel_power_state == 0) {
         return 0;
     }
 

@@ -2192,8 +2192,7 @@ static int mdss_dsi_event_handler(struct mdss_panel_data *pdata,
 		if (ctrl_pdata->on_cmds.link_state == DSI_HS_MODE)
 			rc = mdss_dsi_unblank(pdata);
 		pdata->panel_info.esd_rdy = true;
-        mdss_dsi_panel_update_dispparam(ctrl_pdata, pdata);
-		__cancel_delayed_work(&ctrl_pdata->dispparam_work);
+		cancel_delayed_work(&ctrl_pdata->dispparam_work);
 		schedule_delayed_work(&ctrl_pdata->dispparam_work,
 					msecs_to_jiffies(10));
 		break;
@@ -2201,7 +2200,7 @@ static int mdss_dsi_event_handler(struct mdss_panel_data *pdata,
 		power_state = (int) (unsigned long) arg;
 		if (ctrl_pdata->off_cmds.link_state == DSI_HS_MODE)
 			rc = mdss_dsi_blank(pdata, power_state);
-		__cancel_delayed_work(&ctrl_pdata->dispparam_work);
+		cancel_delayed_work(&ctrl_pdata->dispparam_work);
 		break;
 	case MDSS_EVENT_PANEL_OFF:
 		power_state = (int) (unsigned long) arg;
@@ -2286,7 +2285,7 @@ static int mdss_dsi_event_handler(struct mdss_panel_data *pdata,
 		}
 		break;
     case MDSS_EVENT_SET_DISPPARAM:
-        if (pdata->panel_info.panel_power_on == 1) {
+        if (pdata->panel_info.panel_power_state == 1) {
             ctrl_pdata->dispparam_fnc(pdata, (const char*)arg);
         }
         break;
@@ -2535,6 +2534,8 @@ static int mdss_dsi_ctrl_probe(struct platform_device *pdev)
 	}
 
 	INIT_DELAYED_WORK(&ctrl_pdata->dba_work, mdss_dsi_dba_work);
+    INIT_DELAYED_WORK(&ctrl_pdata->dispparam_work,
+            mdss_dsi_dispparam_work);
 
 	mdss_dsi_pm_qos_add_request(ctrl_pdata);
 
@@ -2942,8 +2943,6 @@ static int mdss_dsi_probe(struct platform_device *pdev)
 		pr_err("%s: Invalid DSI hw configuration\n", __func__);
 		goto error;
 	}
-    INIT_DELAYED_WORK(&ctrl_pdata->dispparam_work,
-            mdss_dsi_dispparam_work);
 
 	mdss_dsi_config_clk_src(pdev);
 
@@ -2984,8 +2983,6 @@ static int mdss_dsi_ctrl_remove(struct platform_device *pdev)
 
 	if (ctrl_pdata->workq)
 		destroy_workqueue(ctrl_pdata->workq);
-
-    destroy_workqueue(&ctrl_pdata->dispparam_work);
 	return 0;
 }
 
