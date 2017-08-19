@@ -181,6 +181,26 @@ static void mdss_dsi_panel_cmds_send(struct mdss_dsi_ctrl_pdata *ctrl,
 	mdss_dsi_cmdlist_put(ctrl, &cmdreq);
 }
 
+static void mdss_dsi_panel_dispparam_send(struct mdss_dsi_ctrl_pdata *ctrl,
+			struct dsi_panel_cmds *pcmds)
+{
+	struct dcs_cmd_req cmdreq;
+
+	memset(&cmdreq, 0, sizeof(cmdreq));
+	cmdreq.cmds = pcmds->cmds;
+	cmdreq.cmds_cnt = pcmds->cmd_cnt;
+	cmdreq.flags = CMD_REQ_COMMIT;
+
+	/*Panel ON/Off commands should be sent in DSI Low Power Mode*/
+	if (pcmds->link_state == DSI_HS_MODE)
+		cmdreq.flags  |= CMD_REQ_HS_MODE;
+
+	cmdreq.rlen = 0;
+	cmdreq.cb = NULL;
+
+	mdss_dsi_cmdlist_put(ctrl, &cmdreq);
+}
+
 static char led_pwm1[2] = {0x51, 0x0};	/* DTYPE_DCS_WRITE1 */
 static struct dsi_cmd_desc backlight_cmd = {
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 1, sizeof(led_pwm1)},
@@ -567,6 +587,42 @@ end:
 	return 0;
 }
 
+static int mdss_dsi_panel_dispparam(struct mdss_panel_data *pdata, const char* cmd)
+{
+	struct mdss_dsi_ctrl_pdata *ctrl = NULL;
+	int rc = 0;
+
+	if (pdata == NULL) {
+		pr_err("%s: Invalid input data\n", __func__);
+		return -EINVAL;
+	}
+
+	ctrl = container_of(pdata, struct mdss_dsi_ctrl_pdata,
+				panel_data);
+
+	pr_debug("%s: ctrl=%p ndx=%d\n", __func__, ctrl, ctrl->ndx);
+
+	pr_info("%s: sending dispparam %s\n", __func__, cmd);
+
+    if (!strncmp(cmd, "warm", 4)) {
+        mdss_dsi_panel_dispparam_send(ctrl, &ctrl->dispparam_warm_cmds);
+    } else if (!strncmp(cmd, "cool", 4)) {
+        mdss_dsi_panel_dispparam_send(ctrl, &ctrl->dispparam_cold_cmds);
+    } else if (!strncmp(cmd, "default", 7)) {
+        mdss_dsi_panel_dispparam_send(ctrl, &ctrl->dispparam_default_cmds);
+    } else if (!strncmp(cmd, "ceon", 4)) {
+        mdss_dsi_panel_dispparam_send(ctrl, &ctrl->dispparam_ceon_cmds);
+    } else if (!strncmp(cmd, "ceoff", 5)) {
+        mdss_dsi_panel_dispparam_send(ctrl, &ctrl->dispparam_ceoff_cmds);
+    } else if (!strncmp(cmd, "cabcon", 6)) {
+        mdss_dsi_panel_dispparam_send(ctrl, &ctrl->dispparam_cabcon_cmds);
+    } else if (!strncmp(cmd, "cabcoff", 7)) {
+        mdss_dsi_panel_dispparam_send(ctrl, &ctrl->dispparam_cabcoff_cmds);
+    }
+
+	return rc;
+}
+
 static void mdss_dsi_panel_switch_mode(struct mdss_panel_data *pdata,
 							int mode)
 {
@@ -899,7 +955,7 @@ static int mdss_dsi_parse_dcs_cmds(struct device_node *np,
 			pcmds->link_state = DSI_LP_MODE;
 	}
 
-	pr_debug("%s: dcs_cmd=%x len=%d, cmd_cnt=%d link_state=%d\n", __func__,
+	pr_info("%s: dcs_cmd=%x len=%d, cmd_cnt=%d link_state=%d\n", __func__,
 		pcmds->buf[0], pcmds->blen, pcmds->cmd_cnt, pcmds->link_state);
 
 	return 0;
@@ -1621,6 +1677,34 @@ static int mdss_dsi_parse_panel_features(struct device_node *np,
 		"qcom,suspend-ulps-enabled");
 	pr_info("%s: ulps during suspend feature %s", __func__,
 		(pinfo->ulps_suspend_enabled ? "enabled" : "disabled"));
+    pinfo->dispparam_enabled = of_property_read_bool(np,
+            "qcom,dispparam-enabled");
+
+    if(pinfo->dispparam_enabled) {
+		ctrl->dispparam_fnc = mdss_dsi_panel_dispparam;
+        mdss_dsi_parse_dcs_cmds(np, &ctrl->dispparam_warm_cmds,
+                "qcom,mdss-dsi-dispparam-warm-command",
+                "qcom,mdss-dsi-dispparam-warm-command-state");
+        mdss_dsi_parse_dcs_cmds(np, &ctrl->dispparam_default_cmds,
+                "qcom,mdss-dsi-dispparam-default-command",
+                "qcom,mdss-dsi-dispparam-default-command-state");
+        mdss_dsi_parse_dcs_cmds(np, &ctrl->dispparam_cold_cmds,
+                "qcom,mdss-dsi-dispparam-cold-command",
+                "qcom,mdss-dsi-dispparam-cold-command-state");
+        mdss_dsi_parse_dcs_cmds(np, &ctrl->dispparam_ceon_cmds,
+                "qcom,mdss-dsi-dispparam-ceon-command",
+                "qcom,mdss-dsi-dispparam-ceon-command-state");
+        mdss_dsi_parse_dcs_cmds(np, &ctrl->dispparam_ceoff_cmds,
+                "qcom,mdss-dsi-dispparam-ceoff-command",
+                "qcom,mdss-dsi-dispparam-ceoff-command-state");
+        mdss_dsi_parse_dcs_cmds(np, &ctrl->dispparam_cabcon_cmds,
+                "qcom,mdss-dsi-dispparam-cabcon-command",
+                "qcom,mdss-dsi-dispparam-cabcon-command-state");
+        mdss_dsi_parse_dcs_cmds(np, &ctrl->dispparam_cabcoff_cmds,
+                "qcom,mdss-dsi-dispparam-cabcoff-command",
+                "qcom,mdss-dsi-dispparam-cabcoff-command-state");
+    }
+
 
 	mdss_dsi_parse_dms_config(np, ctrl);
 

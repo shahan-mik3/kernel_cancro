@@ -235,6 +235,7 @@ enum mdss_intf_events {
 	MDSS_EVENT_DSI_DYNAMIC_SWITCH,
 	MDSS_EVENT_DSI_RECONFIG_CMD,
 	MDSS_EVENT_DSI_RESET_WRITE_PTR,
+	MDSS_EVENT_SET_DISPPARAM,
 };
 
 struct lcd_panel_info {
@@ -514,6 +515,7 @@ struct mdss_panel_info {
 	bool esd_rdy;
 	bool partial_update_supported; /* value from dts if pu is supported */
 	bool partial_update_enabled; /* is pu currently allowed */
+	u32 dispparam_enabled;
 	u32 dcs_cmd_by_left;
 	u32 partial_update_roi_merge;
 	struct ion_handle *splash_ihdl;

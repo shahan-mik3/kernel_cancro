@@ -2272,6 +2272,9 @@ static int mdss_dsi_event_handler(struct mdss_panel_data *pdata,
 					&ctrl_pdata->dba_work, HZ);
 		}
 		break;
+    case MDSS_EVENT_SET_DISPPARAM:
+        ctrl_pdata->dispparam_fnc(pdata, (const char*)arg);
+        break;
 	default:
 		pr_debug("%s: unhandled event=%d\n", __func__, event);
 		break;
