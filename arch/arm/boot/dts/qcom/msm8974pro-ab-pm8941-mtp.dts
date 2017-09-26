@@ -132,12 +132,12 @@
 };
 
 &pm8941_bms {
-	/*qcom,use-external-rsense;*/
+	qcom,use-external-rsense;
 	qcom,max-voltage-uv = <4350000>;
 };
 
 &pm8941_chg {
-	/*qcom,use-external-rsense;*/
+	qcom,use-external-rsense;
 	qcom,vddmax-mv = <4350>;
 	qcom,vddsafe-mv = <4400>;
 	qcom,ibatmax-ma = <1500>;

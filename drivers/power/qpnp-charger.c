@@ -1738,7 +1738,7 @@ qpnp_chg_coarse_det_usb_irq_handler(int irq, void *_chip)
 	return IRQ_HANDLED;
 }
 
-#define USB_WALL_THRESHOLD_MA	500
+#define USB_WALL_THRESHOLD_MA	2000
 #define ENUM_T_STOP_BIT		BIT(0)
 #define USB_5V_UV	5000000
 #define USB_9V_UV	9000000
@@ -3888,17 +3888,17 @@ static void qpnp_chg_thermal_monitor_work(struct work_struct *work)
 	}
 
 	batt_temp = get_prop_batt_temp(chip);
-	if (batt_temp <= 360)
+	if (batt_temp <= 390)
 		thermal_level = 0;
-	else if (batt_temp <= 370)
-		thermal_level = 1;
-	else if (batt_temp <= 380)
-		thermal_level = 2;
-	else if (batt_temp <= 390)
-		thermal_level = 3;
 	else if (batt_temp <= 400)
-		thermal_level = 4;
+		thermal_level = 1;
 	else if (batt_temp <= 410)
+		thermal_level = 2;
+	else if (batt_temp <= 420)
+		thermal_level = 3;
+	else if (batt_temp <= 430)
+		thermal_level = 4;
+	else if (batt_temp <= 440)
 		thermal_level = 5;
 	else
 		thermal_level = 6;
@@ -4147,7 +4147,7 @@ static void qpnp_invalid_charger_work(struct work_struct *work)
 		/*power_supply_set_supply_type(chip->usb_psy,
 			POWER_SUPPLY_TYPE_USB);*/
 		power_supply_set_online(chip->usb_psy, true);
-		power_supply_set_current_limit(chip->usb_psy, 500000);
+		power_supply_set_current_limit(chip->usb_psy, 2000000);
 	} else if (!usb_present && batt_present && ret.intval > 0) {
 		/*power_supply_set_supply_type(chip->usb_psy,
 			POWER_SUPPLY_TYPE_USB);*/
