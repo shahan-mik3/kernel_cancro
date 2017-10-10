@@ -2670,6 +2670,7 @@ dai_mi2s: qcom,msm-dai-q6-mi2s-quat {
 		reg = <0xfc834000 0x7000>;
 		interrupts = <0 29 1>;
 		qcom,rx-ring-size = <64>;
+        qcom,fast-shutdown;
 	};
 
 	uart7: uart@f995d000 { /*BLSP #2, UART #7 */
