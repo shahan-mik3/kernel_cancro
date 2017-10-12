@@ -14,6 +14,8 @@
 #ifndef _UAPI_LINUX_EVENTPOLL_H
 #define _UAPI_LINUX_EVENTPOLL_H
 
+#ifdef __KERNEL__
+
 /* For O_CLOEXEC */
 #include <linux/fcntl.h>
 #include <linux/types.h>
@@ -44,7 +46,7 @@
 /* Set the Edge Triggered behaviour for the target file descriptor */
 #define EPOLLET (1 << 31)
 
-/* 
+/*
  * On x86-64 make the 64bit structure have the same alignment as the
  * 32bit structure. This makes 32bit emulation easier.
  *
@@ -61,5 +63,5 @@ struct epoll_event {
 	__u64 data;
 } EPOLL_PACKED;
 
-
+#endif /* __KERNEL__ */
 #endif /* _UAPI_LINUX_EVENTPOLL_H */
