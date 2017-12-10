@@ -307,6 +307,10 @@ int blkdev_ioctl(struct block_device *bdev, fmode_t mode, unsigned cmd,
 	case BLKSECDISCARD: {
 		uint64_t range[2];
 
+        if(cmd == BLKSECDISCARD) {
+            return -EFAULT;
+        }
+
 		if (!(mode & FMODE_WRITE))
 			return -EBADF;
 
