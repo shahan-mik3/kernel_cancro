@@ -77,7 +77,6 @@ static int msm8974_auxpcm_rate = 8000;
 #define EXT_CLASS_AB_DELAY_DELTA 1000
 
 #define NUM_OF_AUXPCM_GPIOS 4
-static int msm_vi_feed_tx_ch = 2;
 
 static void *adsp_state_notifier;
 
@@ -110,7 +109,6 @@ static const char *const auxpcm_rate_text[] = {"8000", "16000"};
 static const struct soc_enum msm8974_auxpcm_enum[] = {
 		SOC_ENUM_SINGLE_EXT(2, auxpcm_rate_text),
 };
-static const char *const vi_feed_ch_text[] = {"One", "Two"};
 
 void *def_taiko_mbhc_cal(void);
 static int msm_snd_enable_codec_ext_clk(struct snd_soc_codec *codec, int enable,
@@ -842,25 +840,6 @@ static int msm_slim_0_tx_ch_put(struct snd_kcontrol *kcontrol,
 	return 1;
 }
 
-static int msm_vi_feed_tx_ch_get(struct snd_kcontrol *kcontrol,
-	struct snd_ctl_elem_value *ucontrol)
-{
-	ucontrol->value.integer.value[0] = (msm_vi_feed_tx_ch/2 - 1);
-	pr_debug("%s: msm_vi_feed_tx_ch = %ld\n", __func__,
-		 ucontrol->value.integer.value[0]);
-	return 0;
-}
-
-static int msm_vi_feed_tx_ch_put(struct snd_kcontrol *kcontrol,
-	struct snd_ctl_elem_value *ucontrol)
-{
-	msm_vi_feed_tx_ch =
-		roundup_pow_of_two(ucontrol->value.integer.value[0] + 2);
-
-	pr_debug("%s: msm_vi_feed_tx_ch = %d\n", __func__, msm_vi_feed_tx_ch);
-	return 1;
-}
-
 static int msm_btsco_rate_get(struct snd_kcontrol *kcontrol,
 				struct snd_ctl_elem_value *ucontrol)
 {
@@ -1338,9 +1317,10 @@ static int msm_slim_4_tx_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
 	struct snd_interval *channels = hw_param_interval(params,
 			SNDRV_PCM_HW_PARAM_CHANNELS);
 
+	pr_debug("%s()\n", __func__);
 	rate->min = rate->max = 48000;
-	channels->min = channels->max = msm_vi_feed_tx_ch;
-	pr_debug("%s: %d\n", __func__, msm_vi_feed_tx_ch);
+	channels->min = channels->max = 2;
+
 	return 0;
 }
 
@@ -1408,7 +1388,6 @@ static const struct soc_enum msm_snd_enum[] = {
 	SOC_ENUM_SINGLE_EXT(3, slim0_rx_sample_rate_text),
 	SOC_ENUM_SINGLE_EXT(8, proxy_rx_ch_text),
 	SOC_ENUM_SINGLE_EXT(3, hdmi_rx_sample_rate_text),
-	SOC_ENUM_SINGLE_EXT(2, vi_feed_ch_text),
 };
 
 static const struct snd_kcontrol_new msm_snd_controls[] = {
@@ -1418,8 +1397,6 @@ static const struct snd_kcontrol_new msm_snd_controls[] = {
 			msm_slim_0_rx_ch_get, msm_slim_0_rx_ch_put),
 	SOC_ENUM_EXT("SLIM_0_TX Channels", msm_snd_enum[2],
 			msm_slim_0_tx_ch_get, msm_slim_0_tx_ch_put),
-	SOC_ENUM_EXT("VI_FEED_TX Channels", msm_snd_enum[8],
-			msm_vi_feed_tx_ch_get, msm_vi_feed_tx_ch_put),
 	SOC_ENUM_EXT("AUX PCM SampleRate", msm8974_auxpcm_enum[0],
 			msm8974_auxpcm_rate_get, msm8974_auxpcm_rate_put),
 	SOC_ENUM_EXT("HDMI_RX Channels", msm_snd_enum[3],
@@ -1802,7 +1779,6 @@ static int msm_snd_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_dai *codec_dai = rtd->codec_dai;
 	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
-	struct snd_soc_dai_link *dai_link = rtd->dai_link;
 	int ret = 0;
 	unsigned int rx_ch[SLIM_MAX_RX_PORTS], tx_ch[SLIM_MAX_TX_PORTS];
 	unsigned int rx_ch_cnt = 0, tx_ch_cnt = 0;
@@ -1840,8 +1816,6 @@ static int msm_snd_hw_params(struct snd_pcm_substream *substream,
 		/* For tabla_tx2 case */
 		else if (codec_dai->id == 3)
 			user_set_tx_ch = params_channels(params);
-		else if (dai_link->be_id == MSM_BACKEND_DAI_SLIMBUS_4_TX)
-			user_set_tx_ch = msm_vi_feed_tx_ch;
 		else
 			user_set_tx_ch = tx_ch_cnt;
 
