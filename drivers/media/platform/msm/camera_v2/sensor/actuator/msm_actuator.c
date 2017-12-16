@@ -1278,9 +1278,11 @@ static int32_t msm_actuator_set_param(struct msm_actuator_ctrl_t *a_ctrl,
 
 	if (copy_from_user(&a_ctrl->region_params,
 		(void *)set_info->af_tuning_params.region_params,
-		a_ctrl->region_size * sizeof(struct region_params_t)))
+		a_ctrl->region_size * sizeof(struct region_params_t))) {
+		a_ctrl->total_steps = 0;
+		pr_err("Error copying region_params\n");
 		return -EFAULT;
-
+	}
 	if (a_ctrl->act_device_type == MSM_CAMERA_PLATFORM_DEVICE) {
 		cci_client = a_ctrl->i2c_client.cci_client;
 		cci_client->sid =
@@ -1641,7 +1643,6 @@ static long msm_actuator_subdev_do_ioctl(
 
 	switch (cmd) {
 	case VIDIOC_MSM_ACTUATOR_CFG32:
-		cmd = VIDIOC_MSM_ACTUATOR_CFG;
 		switch (u32->cfgtype) {
 		case CFG_SET_ACTUATOR_INFO:
 			actuator_data.cfgtype = u32->cfgtype;
@@ -1759,11 +1760,14 @@ static long msm_actuator_subdev_do_ioctl(
 		}
 	}
 
-	rc = msm_actuator_subdev_ioctl(sd, cmd, parg);
+	if (cmd == VIDIOC_MSM_ACTUATOR_CFG32)
+		rc = msm_actuator_subdev_ioctl(sd, VIDIOC_MSM_ACTUATOR_CFG, parg);
+	else
+		rc = msm_actuator_subdev_ioctl(sd, cmd, parg);
 
 	switch (cmd) {
 
-	case VIDIOC_MSM_ACTUATOR_CFG:
+	case VIDIOC_MSM_ACTUATOR_CFG32:
 
 		switch (u32->cfgtype) {
 

@@ -942,14 +942,29 @@ static int diag_send_raw_data_remote(int proc, void *buf, int len,
 		return -EAGAIN;
 
 	if (driver->hdlc_disabled) {
+		if (len < 4) {
+			pr_err("diag: In %s, invalid len: %d of non_hdlc pkt",
+			__func__, len);
+			return -EBADMSG;
+		}
 		payload = *(uint16_t *)(buf + 2);
 		driver->hdlc_encode_buf_len = payload;
 		/*
-		 * Adding 4 bytes for start (1 byte), version (1 byte) and
-		 * payload (2 bytes)
+		 * Adding 5 bytes for start (1 byte), version (1 byte),
+		 * payload (2 bytes) and end (1 byte)
 		 */
-		memcpy(driver->hdlc_encode_buf, buf + 4, payload);
-		goto send_data;
+		if (len == (payload + 5)) {
+			/*
+			 * Adding 4 bytes for start (1 byte), version (1 byte)
+			 * and payload (2 bytes)
+			 */
+			memcpy(driver->hdlc_encode_buf, buf + 4, payload);
+			goto send_data;
+		} else {
+			pr_err("diag: In %s, invalid len: %d of non_hdlc pkt",
+			__func__, len);
+			return -EBADMSG;
+		}
 	}
 
 	if (hdlc_flag) {
@@ -1348,14 +1363,18 @@ static int diag_ioctl_lsm_deinit(void)
 {
 	int i;
 
+	mutex_lock(&driver->diagchar_mutex);
 	for (i = 0; i < driver->num_clients; i++)
 		if (driver->client_map[i].pid == current->tgid)
 			break;
 
-	if (i == driver->num_clients)
+	if (i == driver->num_clients) {
+		mutex_unlock(&driver->diagchar_mutex);
 		return -EINVAL;
+	}
 
 	driver->data_ready[i] |= DEINIT_TYPE;
+	mutex_unlock(&driver->diagchar_mutex);
 	wake_up_interruptible(&driver->wait_q);
 
 	return 1;
@@ -1818,7 +1837,9 @@ long diagchar_ioctl(struct file *filp,
 		mutex_unlock(&driver->dci_mutex);
 		break;
 	case DIAG_IOCTL_DCI_EVENT_STATUS:
+		mutex_lock(&driver->dci_mutex);
 		result = diag_ioctl_dci_event_status(ioarg);
+		mutex_unlock(&driver->dci_mutex);
 		break;
 	case DIAG_IOCTL_DCI_CLEAR_LOGS:
 		mutex_lock(&driver->dci_mutex);
@@ -2382,6 +2403,16 @@ static int diag_user_process_apps_data(const char __user *buf, int len,
 	return 0;
 }
 
+static int check_data_ready(int index)
+{
+	int data_type = 0;
+
+	mutex_lock(&driver->diagchar_mutex);
+	data_type = driver->data_ready[index];
+	mutex_unlock(&driver->diagchar_mutex);
+	return data_type;
+}
+
 static ssize_t diagchar_read(struct file *file, char __user *buf, size_t count,
 			  loff_t *ppos)
 {
@@ -2393,9 +2424,11 @@ static ssize_t diagchar_read(struct file *file, char __user *buf, size_t count,
 	int exit_stat = 0;
 	int write_len = 0;
 
+	mutex_lock(&driver->diagchar_mutex);
 	for (i = 0; i < driver->num_clients; i++)
 		if (driver->client_map[i].pid == current->tgid)
 			index = i;
+	mutex_unlock(&driver->diagchar_mutex);
 
 	if (index == -1) {
 		pr_err("diag: Client PID not found in table");
@@ -2405,7 +2438,7 @@ static ssize_t diagchar_read(struct file *file, char __user *buf, size_t count,
 		pr_err("diag: bad address from user side\n");
 		return -EFAULT;
 	}
-	wait_event_interruptible(driver->wait_q, driver->data_ready[index]);
+	wait_event_interruptible(driver->wait_q, (check_data_ready(index)) > 0);
 
 	mutex_lock(&driver->diagchar_mutex);
 
@@ -2523,11 +2556,11 @@ static ssize_t diagchar_read(struct file *file, char __user *buf, size_t count,
 	}
 
 exit:
-	mutex_unlock(&driver->diagchar_mutex);
 	if (driver->data_ready[index] & DCI_DATA_TYPE) {
-		mutex_lock(&driver->dci_mutex);
-		/* Copy the type of data being passed */
 		data_type = driver->data_ready[index] & DCI_DATA_TYPE;
+		mutex_unlock(&driver->diagchar_mutex);
+		/* Copy the type of data being passed */
+		mutex_lock(&driver->dci_mutex);
 		list_for_each_safe(start, temp, &driver->dci_client_list) {
 			entry = list_entry(start, struct diag_dci_client_tbl,
 									track);
@@ -2559,6 +2592,7 @@ exit:
 		mutex_unlock(&driver->dci_mutex);
 		goto end;
 	}
+	mutex_unlock(&driver->diagchar_mutex);
 end:
 	/*
 	 * Flush any read that is currently pending on DCI data and
@@ -2995,6 +3029,7 @@ static int __init diagchar_init(void)
 	mutex_init(&apps_data_mutex);
 	mutex_init(&driver->msg_mask_lock);
 	mutex_init(&driver->diagfwd_channel_mutex);
+	mutex_init(&driver->hdlc_recovery_mutex);
 	init_waitqueue_head(&driver->wait_q);
 	INIT_WORK(&(driver->diag_drain_work), diag_drain_work_fn);
 	INIT_WORK(&(driver->update_user_clients),

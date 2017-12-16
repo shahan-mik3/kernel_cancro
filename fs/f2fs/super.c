@@ -449,7 +449,6 @@ static int sanity_check_raw_super(struct super_block *sb,
 			le32_to_cpu(raw_super->segment_count));
 		return 1;
 	}
-
 	return 0;
 }
 
