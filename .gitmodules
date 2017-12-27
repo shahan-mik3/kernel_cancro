@@ -1,3 +1,0 @@
-[submodule "drivers/staging/prima"]
-	path = drivers/staging/prima
-	url = git@bitbucket.org:oreo-xiaomi/vendor_qcom-opensource_prima
