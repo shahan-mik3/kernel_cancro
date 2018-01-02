@@ -290,6 +290,9 @@
 #define MXT_FW_UPDATE_FLAG	0
 #define MXT_USERDATA_SIZE	8
 
+/*MXT_PROCI_TOUCHSUPPRESSION_T42*/
+#define MXT_TOUCHSUPPRESSION_CTRL 0
+
 /* MXT_PROCI_STYLUS_T47 */
 #define MXT_PSTYLUS_CTRL	0
 
@@ -427,6 +430,9 @@
 #define MXT_XY_SWITCH		(1 << 0)
 #define MXT_X_INVERT		(1 << 1)
 #define MXT_Y_INVERT		(1 << 2)
+
+/* T42 TouchSuppression*/
+#define MXT_TOUCHSUPRESS_ENABLE (5)
 
 /* T47 passive stylus */
 #define MXT_PSTYLUS_ENABLE	(1 << 0)
@@ -1248,7 +1254,7 @@ static int mxt_do_diagnostic(struct mxt_data *data, u8 mode)
 static void mxt_set_t7_for_gesture(struct mxt_data *data, bool enable);
 static void mxt_set_gesture_wake_up(struct mxt_data *data, bool enable);
 
-static int mxt_prevent_sleep() {
+static int mxt_prevent_sleep(void) {
 #ifdef CONFIG_PREVENT_SLEEP
 	if (in_phone_call())
 		return 0;
@@ -4055,6 +4061,13 @@ static ssize_t mxt_diagnostic_store(struct device *dev,
 	return count;
 }
 
+static void mxt_update_t42(struct mxt_data *data, int enable)
+{
+    int error;
+    error = mxt_write_object(data, MXT_PROCI_TOUCHSUPPRESSION_T42,
+            MXT_TOUCHSUPPRESSION_CTRL, enable ? MXT_TOUCHSUPRESS_ENABLE:0);
+}
+
 static void mxt_update_noise_mode(struct mxt_data *data)
 {
     int error;
@@ -5097,6 +5110,7 @@ static int mxt_initialize_input_device(struct mxt_data *data)
 	configure_sleep(data);
 	data->ps_notif.notifier_call = ps_notifier_cb;
     reg_charger_notifier(&data->ps_notif);
+    mxt_update_t42(data, 1);
 
 	return 0;
 }
