@@ -29,8 +29,8 @@
 #include <linux/of_gpio.h>
 #include <asm/bootinfo.h>
 #include <mach/gpiomux.h>
-#ifdef CONFIG_FB
 #include <linux/notifier.h>
+#ifdef CONFIG_FB
 #include <linux/fb.h>
 #endif
 #ifdef CONFIG_PREVENT_SLEEP
@@ -496,6 +496,7 @@
 #define MXT_NOICTRL_ENABLE	(1 << 0)
 #define MXT_NOICFG_VNOISY	(1 << 1)
 #define MXT_NOICFG_NOISY	(1 << 0)
+#define MXT_NOICFG_CHRGR	(9)
 
 /* T109 self-cap */
 #define MXT_SELFCTL_RPTEN	0x2
@@ -616,6 +617,7 @@ struct mxt_data {
 	u8 diag_mode;
 	u8 atchthr;
 	u8 sensitive_mode;
+	u8 charger_connected;
 	u8 stylus_mode;
 	u8 wakeup_gesture_mode;
 	bool is_wakeup_by_gesture;
@@ -677,9 +679,12 @@ struct mxt_data {
 #ifdef CONFIG_FB
 	struct notifier_block fb_notif;
 #endif
+    struct notifier_block ps_notif;
 };
 
 static struct mxt_suspend mxt_save[] = {
+    {MXT_PROCG_NOISE_T22, MXT_NOISE_CTRL,
+		MXT_T22_DISABLE, MXT_SUSPEND_DYNAMIC, 0},
 	{MXT_GEN_POWER_T7, MXT_POWER_IDLEACQINT,
 		MXT_T7_IDLEACQ_DISABLE, MXT_SUSPEND_DYNAMIC, 0},
 	{MXT_GEN_POWER_T7, MXT_POWER_ACTVACQINT,
@@ -722,6 +727,9 @@ static struct gpiomux_setting mxt_int_cutoff_pwr_cfg = {
 
 static ssize_t mxt_update_firmware(struct device *dev,
 	struct device_attribute *attr, const char *buf, size_t count, bool *upgraded);
+
+extern int reg_charger_notifier(struct notifier_block *nb);
+extern int unreg_charger_notifier(struct notifier_block *nb);
 
 static int mxt_bootloader_read(struct mxt_data *data, u8 *val, unsigned int count)
 {
@@ -4047,6 +4055,72 @@ static ssize_t mxt_diagnostic_store(struct device *dev,
 	return count;
 }
 
+static void mxt_update_noise_mode(struct mxt_data *data)
+{
+    int error;
+    struct device *dev = &data->client->dev;
+    u8 noise_ctrl;
+    const struct mxt_platform_data *pdata = data->pdata;
+    u8 *linearity_reg_pos = pdata->linearity_reg_pos;
+    u8 *linearity_array;
+    int i;
+
+    if (data->sensitive_mode || data->charger_connected) {
+        error = mxt_read_object(data, MXT_PROCG_NOISESUPPRESSION_T72,
+                MXT_NOISESUP_CFG1, &noise_ctrl);
+        if (error) {
+            dev_err(dev, "Failed in reading from T72!\n");
+            return;
+        }
+
+        mxt_set_clr_reg(data, MXT_PROCG_NOISESUPPRESSION_T72,
+                MXT_NOISESUP_CTRL, MXT_NOICTRL_ENABLE, 0);
+
+        if (data->sensitive_mode && noise_ctrl != MXT_NOICFG_NOISY) {
+            error = mxt_write_object(data, MXT_PROCG_NOISESUPPRESSION_T72,
+                    MXT_NOISESUP_CFG1, MXT_NOICFG_NOISY);
+            if (error) {
+                dev_err(dev, "Failed in writing to T72!\n");
+                return;
+            } else {
+                dev_info(dev, "noise suppr active");
+            }
+        } else if (data->charger_connected && noise_ctrl !=
+                MXT_NOICFG_CHRGR) {
+            error = mxt_write_object(data, MXT_PROCG_NOISESUPPRESSION_T72,
+                    MXT_NOISESUP_CFG1, MXT_NOICFG_CHRGR);
+            if (error) {
+                dev_err(dev, "Failed in writing to T72!\n");
+                return;
+            } else {
+                dev_info(dev, "charger active");
+            }
+        }
+        linearity_array = pdata->linearity_dualx;
+    } else {
+        error = mxt_write_object(data, MXT_PROCG_NOISESUPPRESSION_T72,
+                MXT_NOISESUP_CFG1, 0);
+        if (error) {
+            dev_err(dev, "Failed in writing to T72!\n");
+            return;
+        } else {
+            dev_info(dev, "noise suppr off");
+        }
+        mxt_set_clr_reg(data, MXT_PROCG_NOISESUPPRESSION_T72,
+                MXT_NOISESUP_CTRL, 0, MXT_NOICTRL_ENABLE);
+        linearity_array = pdata->linearity_singlex;
+    }
+
+    for (i = 0; i < pdata->linearity_para_num; i++) {
+        error = mxt_write_object(data, MXT_TOUCH_MULTI_T100,
+                linearity_reg_pos[i], linearity_array[i]);
+        if (error) {
+            dev_err(dev, "Failed in writing to T100!\n");
+            return;
+        }
+    }
+}
+
 static int mxt_sensitive_mode_switch(struct mxt_data *data, bool mode_on)
 {
 	int error;
@@ -4130,6 +4204,7 @@ static int mxt_sensitive_mode_switch(struct mxt_data *data, bool mode_on)
 	}
 
 	data->sensitive_mode = (u8)mode_on;
+    mxt_update_noise_mode(data);
 
 	return error;
 }
@@ -4880,6 +4955,16 @@ static int mxt_input_disable(struct input_dev *in_dev)
 	return error;
 }
 
+static int ps_notifier_cb(struct notifier_block *self,
+        unsigned long event, void *data)
+{
+    struct mxt_data *mxt_data =
+        container_of(self, struct mxt_data, ps_notif);
+    mxt_data->charger_connected = (u8)event;
+    mxt_update_noise_mode(mxt_data);
+    return 0;
+}
+
 #ifdef CONFIG_FB
 static int fb_notifier_cb(struct notifier_block *self,
 			unsigned long event, void *data)
@@ -5010,6 +5095,8 @@ static int mxt_initialize_input_device(struct mxt_data *data)
 	data->input_dev = input_dev;
 
 	configure_sleep(data);
+	data->ps_notif.notifier_call = ps_notifier_cb;
+    reg_charger_notifier(&data->ps_notif);
 
 	return 0;
 }
@@ -5163,7 +5250,11 @@ static int mxt_parse_dt(struct device *dev, struct mxt_platform_data *pdata)
 	int ret;
 	struct mxt_config_info *info;
 	struct device_node *temp, *np = dev->of_node;
+	int *linearity_reg_pos;
+	int *linearity_singlex;
+	int *linearity_dualx;
 	u32 temp_val;
+    int i;
 
 	/* reset, irq, power gpio info */
 	pdata->reset_gpio = of_get_named_gpio_flags(np, "atmel,reset-gpio",
@@ -5197,6 +5288,57 @@ static int mxt_parse_dt(struct device *dev, struct mxt_platform_data *pdata)
 		dev_err(dev, "Unable to read gpio mask\n");
 	else
 		pdata->gpio_mask = (u8)temp_val;
+
+    ret = of_property_read_u32(np, "atmel,linearity-para-num", (u32 *)&temp_val);
+    if (ret)
+        dev_err(dev, "Unable to read linearity para num\n");
+
+    linearity_reg_pos = devm_kzalloc(dev, sizeof(int) * temp_val, GFP_KERNEL);
+    if (!linearity_reg_pos)
+        return -ENOMEM;
+    linearity_singlex = devm_kzalloc(dev, sizeof(int) * temp_val, GFP_KERNEL);
+    if (!linearity_singlex)
+        return -ENOMEM;
+    linearity_dualx = devm_kzalloc(dev, sizeof(int) * temp_val, GFP_KERNEL);
+    if (!linearity_dualx)
+        return -ENOMEM;
+
+    ret = of_property_read_u32_array(np, "atmel,linearity-reg-pos",
+            linearity_reg_pos, temp_val);
+    if (ret) {
+        dev_err(dev, "Unable to get linearity reg pos.\n");
+        return ret;
+    }
+
+    ret = of_property_read_u32_array(np, "atmel,linearity-singlex",
+            linearity_singlex, temp_val);
+    if (ret) {
+        dev_err(dev, "Unable to get linearity singlex.\n");
+        return ret;
+    }
+
+    ret = of_property_read_u32_array(np, "atmel,linearity-dualx",
+            linearity_dualx, temp_val);
+    if (ret) {
+        dev_err(dev, "Unable to get linearity dualx.\n");
+        return ret;
+    }
+
+    pdata->linearity_para_num = temp_val;
+    pdata->linearity_reg_pos = devm_kzalloc(dev, sizeof(u8) * temp_val, GFP_KERNEL);
+    if (!pdata->linearity_reg_pos)
+        return -ENOMEM;
+    pdata->linearity_singlex = devm_kzalloc(dev, sizeof(u8) * temp_val, GFP_KERNEL);
+    if (!pdata->linearity_singlex)
+        return -ENOMEM;
+    pdata->linearity_dualx = devm_kzalloc(dev, sizeof(u8) * temp_val, GFP_KERNEL);
+    if (!pdata->linearity_dualx)
+        return -ENOMEM;
+    for (i = 0; i < temp_val; i++) {
+        pdata->linearity_reg_pos[i] = (u8)linearity_reg_pos[i];
+        pdata->linearity_singlex[i] = (u8)linearity_singlex[i];
+        pdata->linearity_dualx[i] = (u8)linearity_dualx[i];
+    }
 
 	ret = of_property_read_u32(np, "atmel,config-array-size", &pdata->config_array_size);
 	if (ret) {

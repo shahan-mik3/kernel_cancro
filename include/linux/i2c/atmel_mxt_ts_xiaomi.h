@@ -77,6 +77,10 @@ struct mxt_platform_data {
 	u32 irq_gpio_flags;
 	u32 power_gpio_flags;
 	u8 gpio_mask;
+    u8 *linearity_reg_pos;
+	u8 *linearity_singlex;
+	u8 *linearity_dualx;
+	int linearity_para_num;
 	int default_config;
 	bool cut_off_power;
 };
