@@ -39,6 +39,8 @@
 #include <linux/of_gpio.h>
 #include <linux/qpnp/pin.h>
 #include <asm/bootinfo.h>
+#include <linux/notifier.h>
+#include <linux/export.h>
 
 /* Interrupt offsets */
 #define INT_RT_STS(base)			(base + 0x10)
@@ -2805,6 +2807,26 @@ static int get_prop_online(struct qpnp_chg_chip *chip)
 	return qpnp_chg_is_batfet_closed(chip);
 }
 
+static BLOCKING_NOTIFIER_HEAD(qpnp_charger_chain);
+
+int reg_charger_notifier(struct notifier_block *nb)
+{
+	return blocking_notifier_chain_register(&qpnp_charger_chain, nb);
+}
+EXPORT_SYMBOL(reg_charger_notifier);
+
+int unreg_charger_notifier(struct notifier_block *nb)
+{
+	return blocking_notifier_chain_unregister(&qpnp_charger_chain, nb);
+}
+EXPORT_SYMBOL(unreg_charger_notifier);
+
+int charger_notifier_call_chain(unsigned long val)
+{
+	return blocking_notifier_call_chain(&qpnp_charger_chain, val, NULL);
+}
+EXPORT_SYMBOL_GPL(charger_notifier_call_chain);
+
 #define USB_SUSPEND_UA	2000
 static void
 qpnp_batt_external_power_changed(struct power_supply *psy)
@@ -2818,6 +2840,8 @@ qpnp_batt_external_power_changed(struct power_supply *psy)
 
 	chip->usb_psy->get_property(chip->usb_psy,
 			  POWER_SUPPLY_PROP_ONLINE, &ret);
+
+    charger_notifier_call_chain((unsigned long)ret.intval);
 
 	/* Need to handle the cases of cable plugin and plugout */
 	if (get_prop_batt_present(chip)) {
