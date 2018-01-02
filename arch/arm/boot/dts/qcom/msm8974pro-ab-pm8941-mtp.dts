@@ -49,6 +49,10 @@
 			atmel,config-array-size = <2>;
 			atmel,irqflags = <0x2008>;
 			atmel,gpio-mask = <0x4>;
+            atmel,linearity-reg-pos = <11 12 17 18>;
+            atmel,linearity-singlex = <10 10 178 50>;
+            atmel,linearity-dualx = <24 244 63 51>;
+            atmel,linearity-para-num = <4>;
 			atmel,cfg_1 {
 				atmel,family-id = <0x82>;
 				atmel,variant-id = <0x2C>;
@@ -67,8 +71,8 @@
 				atmel,mult-intthr-sensitive = <12>;
 				atmel,mult-intthr-not-sensitive = <17>;
 				atmel,atchthr-sensitive = <6>;
-				atmel,mult-tchthr-sensitive = <0>;
-				atmel,mult-tchthr-not-sensitive = <0>;
+				atmel,mult-tchthr-sensitive = <0x3C>;
+				atmel,mult-tchthr-not-sensitive = <0x20>;
 			};
 			atmel,cfg_2 {
 				atmel,family-id = <0x82>;
@@ -88,8 +92,8 @@
 				atmel,mult-intthr-sensitive = <12>;
 				atmel,mult-intthr-not-sensitive = <17>;
 				atmel,atchthr-sensitive = <6>;
-				atmel,mult-tchthr-sensitive = <0>;
-				atmel,mult-tchthr-not-sensitive = <0>;
+				atmel,mult-tchthr-sensitive = <0x3C>;
+				atmel,mult-tchthr-not-sensitive = <0x20>;
 			};
 		};
 	};

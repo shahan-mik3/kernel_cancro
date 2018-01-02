@@ -112,7 +112,7 @@
 			synaptics,key-map = <139 102 158>;
 		};
 
-		atmel_mxt_ts_640t@4b {
+		atmel_mxt_ts_640t@4a {
 			compatible = "atmel,mxt-ts-640t";
 			reg = <0x4b>;
 			interrupt-parent = <&msmgpio>;
@@ -125,6 +125,10 @@
 			atmel,config-array-size = <6>;
 			atmel,irqflags = <0x2008>;
 			atmel,gpio-mask = <0x1C>;
+            atmel,linearity-reg-pos = <11 12 17 18>;
+            atmel,linearity-singlex = <10 10 178 50>;
+            atmel,linearity-dualx = <24 244 63 51>;
+            atmel,linearity-para-num = <4>;
 			atmel,cfg_1 {
 				atmel,family-id = <0xA4>;
 				atmel,variant-id = <0x07>;
