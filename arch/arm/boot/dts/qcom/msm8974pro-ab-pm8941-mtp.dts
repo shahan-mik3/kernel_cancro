@@ -69,7 +69,7 @@
 				atmel,self-chgtime-min = <0>;
 				atmel,self-chgtime-max = <0>;
 				atmel,mult-intthr-sensitive = <12>;
-				atmel,mult-intthr-not-sensitive = <17>;
+				atmel,mult-intthr-not-sensitive = <20>;
 				atmel,atchthr-sensitive = <6>;
 				atmel,mult-tchthr-sensitive = <0x3C>;
 				atmel,mult-tchthr-not-sensitive = <0x20>;
@@ -90,7 +90,7 @@
 				atmel,self-chgtime-min = <0>;
 				atmel,self-chgtime-max = <0>;
 				atmel,mult-intthr-sensitive = <12>;
-				atmel,mult-intthr-not-sensitive = <17>;
+				atmel,mult-intthr-not-sensitive = <20>;
 				atmel,atchthr-sensitive = <6>;
 				atmel,mult-tchthr-sensitive = <0x3C>;
 				atmel,mult-tchthr-not-sensitive = <0x20>;
