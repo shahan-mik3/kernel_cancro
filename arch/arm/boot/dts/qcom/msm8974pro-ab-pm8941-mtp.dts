@@ -64,7 +64,9 @@
 				atmel,lcd-id = <0x00>;
 				atmel,key-codes = <158 102 139>;
 				atmel,key-num = <3>;
+                atmel,selfthr-suspend = <51>;
 				atmel,selfintthr-stylus = <12>;
+                atmel,selfintthr-suspend = <8>;
 				atmel,t71-tchthr-pos = <22>;
 				atmel,self-chgtime-min = <0>;
 				atmel,self-chgtime-max = <0>;
@@ -85,7 +87,9 @@
 				atmel,lcd-id = <0x01>;
 				atmel,key-codes = <158 102 139>;
 				atmel,key-num = <3>;
+                atmel,selfthr-suspend = <51>;
 				atmel,selfintthr-stylus = <12>;
+                atmel,selfintthr-suspend = <8>;
 				atmel,t71-tchthr-pos = <22>;
 				atmel,self-chgtime-min = <0>;
 				atmel,self-chgtime-max = <0>;

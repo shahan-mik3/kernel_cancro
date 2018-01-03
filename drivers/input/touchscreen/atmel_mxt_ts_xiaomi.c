@@ -619,6 +619,8 @@ struct mxt_data {
 	int current_index;
 	u8 update_flag;
 	u8 test_result[6];
+    u8 selfthr_save;
+	u8 intthr_save;
 	int touch_num;
 	u8 diag_mode;
 	u8 atchthr;
@@ -1217,6 +1219,56 @@ static void mxt_proc_t9_messages(struct mxt_data *data, u8 *message)
 		/* Touch no longer in detect, so close out slot */
 		mxt_input_sync(data);
 		input_mt_report_slot_state(input_dev, MT_TOOL_FINGER, 0);
+	}
+}
+
+#define TYPE_SELF_THR	0x1
+#define TYPE_SELF_INTTHR_STYLUS	0x2
+#define TYPE_SELF_INTTHR_SUSPEND	0x3
+static void mxt_adjust_self_setting(struct mxt_data *data, bool is_update, u8 type)
+{
+	struct device *dev = &data->client->dev;
+	const struct mxt_platform_data *pdata = data->pdata;
+	int error, i;
+	u8 update_val = 0;
+	u8 original_val = 0;
+	int index = data->current_index;
+	u8 reg_pos[2];
+	u8 val;
+	int count = sizeof(reg_pos);
+	u8 obj_num = MXT_SPT_AUXTOUCHCONFIG_T104;
+
+	if (type == TYPE_SELF_THR) {
+		update_val = pdata->config_array[index].selfthr_suspend;
+		original_val = data->selfthr_save;
+		reg_pos[0] = MXT_AUXTCHCFG_XTCHTHR;
+		reg_pos[1] = MXT_AUXTCHCFG_YTCHTHR;
+	} else if (type == TYPE_SELF_INTTHR_STYLUS) {
+		update_val = pdata->config_array[index].selfintthr_stylus;
+		original_val = data->intthr_save;
+		reg_pos[0] = MXT_AUXTCHCFG_INTTHRX;
+		reg_pos[1] = MXT_AUXTCHCFG_INTTHRY;
+	} else if (type == TYPE_SELF_INTTHR_SUSPEND) {
+		update_val = pdata->config_array[index].selfintthr_suspend;
+		original_val = data->intthr_save;
+		reg_pos[0] = MXT_AUXTCHCFG_INTTHRX;
+		reg_pos[1] = MXT_AUXTCHCFG_INTTHRY;
+	}
+
+	if (update_val == 0)
+		return;
+
+	if (is_update)
+		val = update_val;
+	else
+		val = original_val;
+
+	for (i = 0; i < count; i++) {
+		error = mxt_write_object(data, obj_num, reg_pos[i], val);
+		if (error) {
+			dev_err(dev, "Failed to write T104 pos 0x%x!\n", reg_pos[i]);
+			return;
+		}
 	}
 }
 
@@ -2946,6 +2998,7 @@ static int mxt_get_init_setting(struct mxt_data *data)
 			dev_err(dev, "Failed to read self threshold from t104!\n");
 			return error;
 		}
+        data->selfthr_save = selfthr;
 
 		error = mxt_read_object(data, MXT_SPT_AUXTOUCHCONFIG_T104,
 						MXT_AUXTCHCFG_INTTHRX, &intthr);
@@ -2953,6 +3006,7 @@ static int mxt_get_init_setting(struct mxt_data *data)
 			dev_err(dev, "Failed to read internal threshold from t104!\n");
 			return error;
 		}
+        data->intthr_save = intthr;
 	}
 
 	if (mxt_get_object(data, MXT_PROCI_GLOVEDETECTION_T78) != NULL) {
@@ -3893,6 +3947,8 @@ static int mxt_stylus_mode_switch(struct mxt_data *data, bool mode_on)
 		}
 	}
 
+    mxt_adjust_self_setting(data, ctrl & MXT_PSTYLUS_ENABLE,
+            TYPE_SELF_INTTHR_STYLUS);
 	error = mxt_write_object(data, MXT_PROCI_STYLUS_T47,
 			MXT_PSTYLUS_CTRL, ctrl);
 	if (error) {
@@ -5444,12 +5500,24 @@ static int mxt_parse_dt(struct device *dev, struct mxt_platform_data *pdata)
 			}
 		}
 
+        ret = of_property_read_u32(temp, "atmel,selfthr-suspend", &temp_val);
+		if (ret) {
+			dev_err(dev, "Unable to read selfthr-suspend\n");
+			return ret;
+		} else
+			info->selfthr_suspend = temp_val;
 		ret = of_property_read_u32(temp, "atmel,selfintthr-stylus", &temp_val);
 		if (ret) {
 			dev_err(dev, "Unable to read selfintthr-stylus\n");
 			return ret;
 		} else
 			info->selfintthr_stylus = temp_val;
+        ret = of_property_read_u32(temp, "atmel,selfintthr-suspend", &temp_val);
+		if (ret) {
+			dev_err(dev, "Unable to read selfintthr-suspend\n");
+			return ret;
+		} else
+			info->selfintthr_suspend = temp_val;
 		ret = of_property_read_u32(temp, "atmel,t71-tchthr-pos", &temp_val);
 		if (ret) {
 			dev_err(dev, "Unable to read t71-glove-ctrl-reg\n");

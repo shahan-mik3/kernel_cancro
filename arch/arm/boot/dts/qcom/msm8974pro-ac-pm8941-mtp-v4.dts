@@ -112,8 +112,8 @@
 			synaptics,key-map = <139 102 158>;
 		};
 
-		atmel_mxt_ts_640t@4a {
-			compatible = "atmel,mxt-ts-640t";
+		atmel_mxt_ts@4a {
+			compatible = "atmel,mxt-ts";
 			reg = <0x4b>;
 			interrupt-parent = <&msmgpio>;
 			interrupts = <54 0x2>;
@@ -139,7 +139,9 @@
 				atmel,vendor-id = <0x1C>; /* Not supported */
 				atmel,key-codes = <158 102 139>;
 				atmel,key-num = <3>;
+                atmel,selfthr-suspend = <51>;
 				atmel,selfintthr-stylus = <0>;
+                atmel,selfintthr-suspend = <8>;
 				atmel,t71-tchthr-pos = <22>;
 				atmel,self-chgtime-min = <0>;
 				atmel,self-chgtime-max = <0>;
@@ -160,7 +162,9 @@
 				atmel,vendor-id = <0x1C>; /* Wintek, P2/P3, old ID */
 				atmel,key-codes = <158 102 139>;
 				atmel,key-num = <3>;
+                atmel,selfthr-suspend = <51>;
 				atmel,selfintthr-stylus = <0>;
+                atmel,selfintthr-suspend = <8>;
 				atmel,t71-tchthr-pos = <22>;
 				atmel,self-chgtime-min = <0>;
 				atmel,self-chgtime-max = <0>;
@@ -181,7 +185,9 @@
 				atmel,vendor-id = <0x14>; /* Wintek, MP */
 				atmel,key-codes = <158 102 139>;
 				atmel,key-num = <3>;
+                atmel,selfthr-suspend = <51>;
 				atmel,selfintthr-stylus = <0>;
+                atmel,selfintthr-suspend = <8>;
 				atmel,t71-tchthr-pos = <22>;
 				atmel,self-chgtime-min = <0>;
 				atmel,self-chgtime-max = <0>;
@@ -202,7 +208,9 @@
 				atmel,vendor-id = <0x18>; /* Ofilm */
 				atmel,key-codes = <158 102 139>;
 				atmel,key-num = <3>;
+                atmel,selfthr-suspend = <51>;
 				atmel,selfintthr-stylus = <0>;
+                atmel,selfintthr-suspend = <8>;
 				atmel,t71-tchthr-pos = <22>;
 				atmel,self-chgtime-min = <0>;
 				atmel,self-chgtime-max = <0>;
@@ -223,7 +231,9 @@
 				atmel,vendor-id = <0x0C>; /* Biel */
 				atmel,key-codes = <158 102 139>;
 				atmel,key-num = <3>;
+                atmel,selfthr-suspend = <51>;
 				atmel,selfintthr-stylus = <0>;
+                atmel,selfintthr-suspend = <8>;
 				atmel,t71-tchthr-pos = <22>;
 				atmel,self-chgtime-min = <0>;
 				atmel,self-chgtime-max = <0>;
@@ -244,7 +254,9 @@
 				atmel,vendor-id = <0x00>; /* Laibao */
 				atmel,key-codes = <158 102 139>;
 				atmel,key-num = <3>;
+                atmel,selfthr-suspend = <51>;
 				atmel,selfintthr-stylus = <0>;
+                atmel,selfintthr-suspend = <8>;
 				atmel,t71-tchthr-pos = <22>;
 				atmel,self-chgtime-min = <0>;
 				atmel,self-chgtime-max = <0>;

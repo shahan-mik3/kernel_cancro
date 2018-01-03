@@ -50,7 +50,9 @@ struct mxt_config_info {
 	const char* mxt_cfg_name;
 	int *key_codes;
 	int key_num;
+    u8 selfthr_suspend;
 	u8 selfintthr_stylus;
+    u8 selfintthr_suspend;
 	u8 t71_tchthr_pos;
 	u8 self_chgtime_min;
 	u8 self_chgtime_max;
