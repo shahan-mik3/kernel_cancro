@@ -1,5 +1,6 @@
 /* ir-lirc-codec.c - rc-core to classic lirc interface bridge
- * Copyright (C) 2015 XiaoMi, Inc.
+ *
+ * Copyright (C) 2010 by Jarod Wilson <jarod@redhat.com>
  *
  * This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -304,29 +305,12 @@ static long ir_lirc_ioctl(struct file *filep, unsigned int cmd,
 
 static int ir_lirc_open(void *data)
 {
-	struct lirc_codec *lirc = data;
-	struct rc_dev *dev = lirc->dev;
-	int ret = 0;
-
-	mutex_lock(&dev->lock);
-	if (!dev->open_count++ && dev->open)
-		ret = dev->open(dev);
-	if (ret < 0)
-		dev->open_count--;
-	mutex_unlock(&dev->lock);
-
-	return ret;
+	return 0;
 }
 
 static void ir_lirc_close(void *data)
 {
-	struct lirc_codec *lirc = data;
-	struct rc_dev *dev = lirc->dev;
-
-	mutex_lock(&dev->lock);
-	if (!--dev->open_count && dev->close)
-		dev->close(dev);
-	mutex_unlock(&dev->lock);
+	return;
 }
 
 static const struct file_operations lirc_fops = {
@@ -394,7 +378,7 @@ static int ir_lirc_register(struct rc_dev *dev)
 	drv->rbuf = rbuf;
 	drv->set_use_inc = &ir_lirc_open;
 	drv->set_use_dec = &ir_lirc_close;
-	drv->code_length = sizeof(int) * 8;
+	drv->code_length = sizeof(struct ir_raw_event) * 8;
 	drv->fops = &lirc_fops;
 	drv->dev = &dev->dev;
 	drv->owner = THIS_MODULE;
@@ -410,7 +394,6 @@ static int ir_lirc_register(struct rc_dev *dev)
 	return 0;
 
 lirc_register_failed:
-	lirc_buffer_free(rbuf);
 rbuf_init_failed:
 	kfree(rbuf);
 rbuf_alloc_failed:
@@ -425,7 +408,6 @@ static int ir_lirc_unregister(struct rc_dev *dev)
 
 	lirc_unregister_driver(lirc->drv->minor);
 	lirc_buffer_free(lirc->drv->rbuf);
-	kfree(lirc->drv->rbuf);
 	kfree(lirc->drv);
 
 	return 0;

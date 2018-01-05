@@ -1,7 +1,6 @@
 /* rc-main.c - Remote Controller core module
  *
  * Copyright (C) 2009-2010 by Mauro Carvalho Chehab <mchehab@redhat.com>
- * Copyright (C) 2015 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -703,28 +702,16 @@ EXPORT_SYMBOL_GPL(rc_keydown_notimeout);
 static int ir_open(struct input_dev *idev)
 {
 	struct rc_dev *rdev = input_get_drvdata(idev);
-	int rc = 0;
 
-	mutex_lock(&rdev->lock);
-	if (!rdev->open_count++)
-		rc = rdev->open(rdev);
-	if (rc < 0)
-		rdev->open_count--;
-	mutex_unlock(&rdev->lock);
-
-	return rc;
+	return rdev->open(rdev);
 }
 
 static void ir_close(struct input_dev *idev)
 {
 	struct rc_dev *rdev = input_get_drvdata(idev);
 
-	 if (rdev) {
-		mutex_lock(&rdev->lock);
-		if (!--rdev->open_count)
-			rdev->close(rdev);
-		mutex_unlock(&rdev->lock);
-	}
+	 if (rdev)
+		rdev->close(rdev);
 }
 
 /* class for /sys/class/rc */
