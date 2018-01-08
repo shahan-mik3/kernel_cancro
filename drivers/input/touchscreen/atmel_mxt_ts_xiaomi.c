@@ -641,7 +641,6 @@ struct mxt_data {
 	u8 userdata_info[MXT_USERDATA_SIZE];
 	bool firmware_updated;
 	bool keys_off;
-	bool hw_wakeup;
 	bool screen_off;
 
 	/* Slowscan parameters	*/
@@ -721,6 +720,9 @@ static const struct mxt_i2c_address_pair mxt_i2c_addresses[] = {
 	{ 0x35, 0x5b },
 #endif
 };
+
+static void mxt_start(struct mxt_data *data);
+static void mxt_stop(struct mxt_data *data);
 
 static struct gpiomux_setting mxt_rst_cutoff_pwr_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
@@ -4345,15 +4347,12 @@ static ssize_t mxt_wakeup_mode_show(struct device *dev,
 	return count;
 }
 
-static void mxt_enable_gesture_mode(struct mxt_data *data)
+static void mxt_enable_gesture_mode(struct mxt_data *data, bool enable)
 {
-	if (!data->hw_wakeup){
-		return;
-	}
 	u8 t81_val;
 	int error;
 
-	if (data->wakeup_gesture_mode)
+	if (enable)
 		t81_val = 7;
 	else
 		t81_val = 0;
@@ -4381,7 +4380,6 @@ static ssize_t  mxt_wakeup_mode_store(struct device *dev,
 
 	if (!error) {
 		data->wakeup_gesture_mode = (u8)val;
-		data->hw_wakeup = true;
 	}
 
 	if (data->is_stopped) {
@@ -4602,8 +4600,6 @@ static void mxt_switch_mode_work(struct work_struct *work)
 {
 	struct mxt_mode_switch *ms = container_of(work, struct mxt_mode_switch, switch_mode_work);
 	struct mxt_data *data = ms->data;
-	const struct mxt_platform_data *pdata = data->pdata;
-	int index = data->current_index;
 	u8 value = ms->mode;
 
 	if (value == MXT_INPUT_EVENT_SENSITIVE_MODE_ON ||
@@ -4737,39 +4733,8 @@ static const struct attribute_group mxt_attr_group = {
 	.attrs = mxt_attrs,
 };
 
-static void mxt_set_t7_for_gesture(struct mxt_data *data, bool enable)
-{
-	if (!data->hw_wakeup) {
-		return;
-	}
-	int error, i;
-	u8 t7_gesture_enable[] = {
-		135, 35, 20
-	};
-	u8 t7_gesture_disable[] = {
-		32, 9, 20
-	};
-	u8 *t7_val;
-
-	if (enable)
-		t7_val = t7_gesture_enable;
-	else
-		t7_val = t7_gesture_disable;
-
-	for (i = 0; i < sizeof(t7_gesture_enable); i++) {
-		error = mxt_write_object(data, MXT_GEN_POWER_T7,
-				i, t7_val[i]);
-		if (error) {
-			pr_info("write to t7 byte %d failed!\n", i);
-			return;
-		}
-	}
-}
-
 static void mxt_set_gesture_wake_up(struct mxt_data *data, bool enable)
 {
-	if (!data->hw_wakeup)
-		return;
 	int error, i;
 	struct device *dev = &data->client->dev;
 	u8 *t108_val;
@@ -4833,6 +4798,7 @@ static void mxt_start(struct mxt_data *data)
 
 	if (mxt_prevent_sleep(data)) {
 		mxt_set_gesture_wake_up(data, false);
+        mxt_enable_gesture_mode(data, false);
 		if (!data->is_wakeup_by_gesture)
             mxt_set_power_cfg(data, MXT_POWER_CFG_RUN);
 		return;
@@ -4862,6 +4828,7 @@ static void mxt_stop(struct mxt_data *data)
 		data->is_wakeup_by_gesture = false;
         mxt_set_power_cfg(data, MXT_POWER_CFG_WAKEUP_GESTURE);
 		mxt_set_gesture_wake_up(data, true);
+        mxt_enable_gesture_mode(data, true);
 	} else {
 		if (data->is_stopped)
 			return;
@@ -5220,6 +5187,8 @@ static int mxt_initialize_input_device(struct mxt_data *data)
 							data->pdata->config_array[index].key_codes[i]);
 		}
 	}
+
+    input_set_capability(input_dev, EV_KEY, KEY_WAKEUP);
 
 	input_set_drvdata(input_dev, data);
 
