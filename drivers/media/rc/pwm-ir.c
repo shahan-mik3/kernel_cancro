@@ -267,7 +267,7 @@ static int __devinit pwm_ir_tx_probe(struct pwm_ir_dev *dev)
 	}
 
 
-	dev->pwm = of_pwm_get(pdev->dev.of_node, NULL);
+	dev->pwm = pwm_request(data->pwm_id, PWM_IR_NAME);
 	if (IS_ERR(dev->pwm)) {
 		dev_err(&dev->pdev->dev,
 			"failed to of_pwm_get()\n");
@@ -329,6 +329,7 @@ static int __devinit pwm_ir_probe(struct platform_device *pdev)
 				struct pwm_ir_data *data = pdev->dev.platform_data;
 
 				of_property_read_string(pdev->dev.of_node, "reg-id", &data->reg_id);
+                of_property_read_u32(pdev->dev.of_node, "pwm-id", (u32 *)&data->pwm_id);
 
 				data->low_active = of_property_read_bool(pdev->dev.of_node, "low-active");
 				data->use_timer = of_property_read_bool(pdev->dev.of_node, "use-timer");
