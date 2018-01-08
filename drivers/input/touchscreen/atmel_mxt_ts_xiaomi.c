@@ -502,7 +502,7 @@
 #define MXT_NOICTRL_ENABLE	(1 << 0)
 #define MXT_NOICFG_VNOISY	(1 << 1)
 #define MXT_NOICFG_NOISY	(1 << 0)
-#define MXT_NOICFG_CHRGR	(9)
+#define MXT_NOICFG_CHRGR	(1 << 5)
 
 /* T109 self-cap */
 #define MXT_SELFCTL_RPTEN	0x2
@@ -3018,6 +3018,8 @@ static int mxt_get_init_setting(struct mxt_data *data)
 		}
 		if ((glovectrl & 0x01) != 0)
 			data->sensitive_mode = 1;
+        else
+            data->sensitive_mode = 0;
 	}
 
 	if (mxt_get_object(data, MXT_PROCI_RETRANSMISSIONCOMPENSATION_T80) != NULL) {
@@ -4127,52 +4129,86 @@ static void mxt_update_noise_mode(struct mxt_data *data)
     int error;
     struct device *dev = &data->client->dev;
     u8 noise_ctrl;
+    u8 noise_cal;
     const struct mxt_platform_data *pdata = data->pdata;
     u8 *linearity_reg_pos = pdata->linearity_reg_pos;
     u8 *linearity_array;
     int i;
 
+    error = mxt_read_object(data, MXT_PROCG_NOISESUPPRESSION_T72,
+            MXT_NOISESUP_CFG1, &noise_ctrl);
+    if (error) {
+        dev_err(dev, "Failed in reading from T72!\n");
+        return;
+    } else {
+        dev_dbg(dev, "Initial value of T72 %d\n", noise_ctrl);
+    }
+
+    error = mxt_read_object(data, MXT_PROCG_NOISESUPPRESSION_T72,
+            MXT_NOISESUP_CALCFG, &noise_cal);
+    if (error) {
+        dev_err(dev, "Failed in reading from T72!\n");
+        return;
+    } else {
+        dev_dbg(dev, "Initial value of cal T72 %d\n", noise_cal);
+    }
+
     if (data->sensitive_mode || data->charger_connected) {
-        error = mxt_read_object(data, MXT_PROCG_NOISESUPPRESSION_T72,
-                MXT_NOISESUP_CFG1, &noise_ctrl);
-        if (error) {
-            dev_err(dev, "Failed in reading from T72!\n");
-            return;
-        }
 
         mxt_set_clr_reg(data, MXT_PROCG_NOISESUPPRESSION_T72,
                 MXT_NOISESUP_CTRL, MXT_NOICTRL_ENABLE, 0);
 
-        if (data->sensitive_mode && noise_ctrl != MXT_NOICFG_NOISY) {
+        if (!(noise_ctrl & MXT_NOICFG_NOISY)) {
             error = mxt_write_object(data, MXT_PROCG_NOISESUPPRESSION_T72,
-                    MXT_NOISESUP_CFG1, MXT_NOICFG_NOISY);
+                    MXT_NOISESUP_CFG1, noise_ctrl | MXT_NOICFG_NOISY);
             if (error) {
                 dev_err(dev, "Failed in writing to T72!\n");
                 return;
             } else {
                 dev_info(dev, "noise suppr active");
             }
-        } else if (data->charger_connected && noise_ctrl !=
-                MXT_NOICFG_CHRGR) {
+        }
+
+        if (data->charger_connected &&
+                !(noise_cal & MXT_NOICFG_CHRGR)) {
             error = mxt_write_object(data, MXT_PROCG_NOISESUPPRESSION_T72,
-                    MXT_NOISESUP_CFG1, MXT_NOICFG_CHRGR);
+                    MXT_NOISESUP_CALCFG, noise_cal | MXT_NOICFG_CHRGR);
             if (error) {
                 dev_err(dev, "Failed in writing to T72!\n");
                 return;
             } else {
                 dev_info(dev, "charger active");
             }
+        } else if (!data->charger_connected &&
+                (noise_cal != 0)) {
+            error = mxt_write_object(data, MXT_PROCG_NOISESUPPRESSION_T72,
+                    MXT_NOISESUP_CALCFG, 0);
         }
         linearity_array = pdata->linearity_dualx;
     } else {
-        error = mxt_write_object(data, MXT_PROCG_NOISESUPPRESSION_T72,
-                MXT_NOISESUP_CFG1, 0);
-        if (error) {
-            dev_err(dev, "Failed in writing to T72!\n");
-            return;
-        } else {
-            dev_info(dev, "noise suppr off");
+
+        if (noise_ctrl != 0) {
+            error = mxt_write_object(data, MXT_PROCG_NOISESUPPRESSION_T72,
+                    MXT_NOISESUP_CFG1, 0);
+            if (error) {
+                dev_err(dev, "Failed in writing to T72!\n");
+                return;
+            } else {
+                dev_info(dev, "noise suppr off");
+            }
         }
+
+        if (noise_cal != 0) {
+            error = mxt_write_object(data, MXT_PROCG_NOISESUPPRESSION_T72,
+                    MXT_NOISESUP_CALCFG, 0);
+            if (error) {
+                dev_err(dev, "Failed in writing to T72!\n");
+                return;
+            } else {
+                dev_info(dev, "charger off");
+            }
+        }
+
         mxt_set_clr_reg(data, MXT_PROCG_NOISESUPPRESSION_T72,
                 MXT_NOISESUP_CTRL, 0, MXT_NOICTRL_ENABLE);
         linearity_array = pdata->linearity_singlex;
@@ -5164,7 +5200,9 @@ static int mxt_initialize_input_device(struct mxt_data *data)
 	configure_sleep(data);
 	data->ps_notif.notifier_call = ps_notifier_cb;
     reg_charger_notifier(&data->ps_notif);
-    mxt_update_t42(data, 1);
+    if (get_hw_version_major() == 3) {
+        mxt_update_t42(data, 1);
+    }
 
 	return 0;
 }
