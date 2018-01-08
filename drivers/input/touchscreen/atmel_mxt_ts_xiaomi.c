@@ -127,6 +127,7 @@
 
 #define MXT_POWER_CFG_RUN		0
 #define MXT_POWER_CFG_DEEPSLEEP		1
+#define MXT_POWER_CFG_WAKEUP_GESTURE	2
 
 /* MXT_GEN_ACQUIRE_T8 field */
 #define MXT_ACQUIRE_CHRGTIME	0
@@ -559,6 +560,7 @@ struct mxt_suspend {
 	u8 suspend_obj;
 	u8 suspend_reg;
 	u8 suspend_val;
+    u8 wakeup_gesture_val;
 	u8 suspend_flags;
 	u8 restore_val;
 };
@@ -631,6 +633,7 @@ struct mxt_data {
 	bool is_wakeup_by_gesture;
 	int hover_tune_status;
 	struct delayed_work calibration_delayed_work;
+    struct delayed_work resume_delayed_work;
 	u8 adcperx_normal[10];
 	u8 adcperx_wakeup[10];
 	bool irq_enabled;
@@ -692,11 +695,11 @@ struct mxt_data {
 
 static struct mxt_suspend mxt_save[] = {
 	{MXT_GEN_POWER_T7, MXT_POWER_IDLEACQINT,
-		MXT_T7_IDLEACQ_DISABLE, MXT_SUSPEND_DYNAMIC, 0},
+		MXT_T7_IDLEACQ_DISABLE, 135, MXT_SUSPEND_DYNAMIC, 0},
 	{MXT_GEN_POWER_T7, MXT_POWER_ACTVACQINT,
-		MXT_T7_ACTVACQ_DISABLE, MXT_SUSPEND_DYNAMIC, 0},
+		MXT_T7_ACTVACQ_DISABLE, 35, MXT_SUSPEND_DYNAMIC, 0},
 	{MXT_GEN_POWER_T7, MXT_POWER_ACTV2IDLETO,
-		MXT_T7_ACTV2IDLE_DISABLE, MXT_SUSPEND_DYNAMIC, 0}
+		MXT_T7_ACTV2IDLE_DISABLE, 20, MXT_SUSPEND_DYNAMIC, 0}
 };
 
 /* I2C slave address pairs */
@@ -1301,10 +1304,10 @@ static int mxt_do_diagnostic(struct mxt_data *data, u8 mode)
 	return -ETIMEDOUT;
 }
 
-static void mxt_set_t7_for_gesture(struct mxt_data *data, bool enable);
+static int mxt_set_power_cfg(struct mxt_data *data, u8 mode);
 static void mxt_set_gesture_wake_up(struct mxt_data *data, bool enable);
 
-static int mxt_prevent_sleep(void) {
+static int mxt_prevent_sleep(struct mxt_data* data) {
 #ifdef CONFIG_PREVENT_SLEEP
 	if (in_phone_call())
 		return 0;
@@ -1314,7 +1317,7 @@ static int mxt_prevent_sleep(void) {
 	else
 		return 0;
 #else
-    return 0;
+    return (int)data->wakeup_gesture_mode;
 #endif
 }
 
@@ -1422,11 +1425,11 @@ static void mxt_proc_t100_messages(struct mxt_data *data, u8 *message)
 		} else {
 			/* Touch no longer in detect, so close out slot */
 			if (data->touch_num == 0 &&
-				mxt_prevent_sleep() &&
+				mxt_prevent_sleep(data) &&
 				data->is_wakeup_by_gesture) {
 				dev_info(dev, "wakeup finger release, restore t7 and t8!\n");
 				data->is_wakeup_by_gesture = false;
-				mxt_set_t7_for_gesture(data, false);
+                mxt_set_power_cfg(data, MXT_POWER_CFG_RUN);
 			}
 			mxt_input_sync(data);
 			input_mt_report_slot_state(input_dev, MT_TOOL_FINGER, 0);
@@ -1600,9 +1603,9 @@ static void mxt_proc_t81_message(struct mxt_data *data, u8 *msg)
 
 	if (data->is_stopped) {
 		data->is_wakeup_by_gesture = true;
-		input_event(input_dev, EV_KEY, KEY_POWER, 1);
+		input_event(input_dev, EV_KEY, KEY_WAKEUP, 1);
 		input_sync(input_dev);
-		input_event(input_dev, EV_KEY, KEY_POWER, 0);
+		input_event(input_dev, EV_KEY, KEY_WAKEUP, 0);
 		input_sync(input_dev);
 	}
 }
@@ -2084,6 +2087,25 @@ static int mxt_set_power_cfg(struct mxt_data *data, u8 mode)
 	}
 
 	switch (mode) {
+        case MXT_POWER_CFG_WAKEUP_GESTURE:
+		/* Wakeup gesture mode */
+		cnt = ARRAY_SIZE(mxt_save);
+		for (i = 0; i < cnt; i++) {
+			if (mxt_get_object(data, mxt_save[i].suspend_obj) == NULL)
+				continue;
+			if (mxt_save[i].suspend_flags == MXT_SUSPEND_DYNAMIC)
+				error |= mxt_write_object(data,
+					mxt_save[i].suspend_obj,
+					mxt_save[i].suspend_reg,
+					mxt_save[i].wakeup_gesture_val);
+			if (error) {
+				error = mxt_chip_reset(data);
+				if (error)
+					dev_err(dev, "Failed to do chip reset!\n");
+				break;
+			}
+		}
+		break;
 	case MXT_POWER_CFG_DEEPSLEEP:
 		/* Touch disable */
 		cnt = ARRAY_SIZE(mxt_save);
@@ -2128,7 +2150,7 @@ static int mxt_set_power_cfg(struct mxt_data *data, u8 mode)
 	if (error)
 		goto i2c_error;
 
-	data->is_stopped = (mode == MXT_POWER_CFG_DEEPSLEEP) ? 1 : 0;
+	data->is_stopped = !!(mode == MXT_POWER_CFG_DEEPSLEEP || mode == MXT_POWER_CFG_WAKEUP_GESTURE);
 
 	return 0;
 
@@ -4362,7 +4384,21 @@ static ssize_t  mxt_wakeup_mode_store(struct device *dev,
 		data->hw_wakeup = true;
 	}
 
-	mxt_enable_gesture_mode(data);
+	if (data->is_stopped) {
+		/* Set wakeup gesture mode in deepsleep,
+		 * should re-set the registers */
+		if (data->wakeup_gesture_mode) {
+			mxt_enable_irq(data);
+			if (data->input_dev->users)
+				mxt_stop(data);
+		} else {
+			mxt_disable_irq(data);
+			data->is_wakeup_by_gesture = false;
+			mxt_set_gesture_wake_up(data, false);
+			mxt_enable_gesture_mode(data, false);
+			mxt_set_power_cfg(data, MXT_POWER_CFG_DEEPSLEEP);
+		}
+	}
 
 	return error ? : count;
 }
@@ -4795,11 +4831,10 @@ static void mxt_start(struct mxt_data *data)
 	int error;
 	struct device *dev = &data->client->dev;
 
-	if (mxt_prevent_sleep() && data->is_stopped!=1) {
+	if (mxt_prevent_sleep(data)) {
 		mxt_set_gesture_wake_up(data, false);
 		if (!data->is_wakeup_by_gesture)
-			mxt_set_t7_for_gesture(data, false);
-		data->is_stopped = 0;
+            mxt_set_power_cfg(data, MXT_POWER_CFG_RUN);
 		return;
 	} else {
 		if (data->is_stopped == 0)
@@ -4823,11 +4858,10 @@ static void mxt_stop(struct mxt_data *data)
 	int error;
 	struct device *dev = &data->client->dev;
 
-	if (mxt_prevent_sleep()) {
+	if (mxt_prevent_sleep(data)) {
 		data->is_wakeup_by_gesture = false;
-		mxt_set_t7_for_gesture(data, true);
+        mxt_set_power_cfg(data, MXT_POWER_CFG_WAKEUP_GESTURE);
 		mxt_set_gesture_wake_up(data, true);
-		data->is_stopped = 1;
 	} else {
 		if (data->is_stopped)
 			return;
@@ -4873,6 +4907,17 @@ static void mxt_clear_touch_event(struct mxt_data *data)
 	input_sync(input_dev);
 }
 
+static void mxt_resume_delayed_work(struct work_struct *work)
+{
+	struct delayed_work *delayed_work = to_delayed_work(work);
+	struct mxt_data *data = container_of(delayed_work, struct mxt_data,
+						resume_delayed_work);
+
+	mxt_wait_for_chg(data);
+	mxt_enable_irq(data);
+	data->is_stopped = 0;
+}
+
 static int mxt_suspend(struct device *dev)
 {
 	int ret;
@@ -4882,6 +4927,7 @@ static int mxt_suspend(struct device *dev)
 
 	if (data->pdata->cut_off_power) {
 		/* In the power is cut off with LCD off, wake up gesture can not be used */
+        cancel_delayed_work_sync(&data->resume_delayed_work);
 		mutex_lock(&input_dev->mutex);
 
 		if (data->is_stopped) {
@@ -4919,12 +4965,7 @@ static int mxt_suspend(struct device *dev)
 	} else {
 		mutex_lock(&input_dev->mutex);
 
-		if (data->is_stopped) {
-			mutex_unlock(&input_dev->mutex);
-			return 0;
-		}
-
-        if (!mxt_prevent_sleep())
+        if (!mxt_prevent_sleep(data))
 			mxt_disable_irq(data);
 
 		if (input_dev->users)
@@ -4949,7 +4990,6 @@ static int mxt_suspend(struct device *dev)
 				"Atmel regulator disable for vddio failed: %d\n", ret);
 			}
 		}
-		data->is_stopped = 1;
 
 		mutex_unlock(&input_dev->mutex);
 	}
@@ -4994,18 +5034,14 @@ static int mxt_resume(struct device *dev)
 		mxt_wait_for_chg(data);
 		mxt_enable_irq(data);
 		schedule_delayed_work(&data->calibration_delayed_work, msecs_to_jiffies(100));
-		data->is_stopped = false;
 
 		mutex_unlock(&input_dev->mutex);
+        schedule_delayed_work(&data->resume_delayed_work, msecs_to_jiffies(100));
 	} else {
 		mutex_lock(&input_dev->mutex);
 
-        if (!data->is_stopped) {
-			mutex_unlock(&input_dev->mutex);
-			return 0;
-        }
-
-        mxt_enable_irq(data);
+        if (!mxt_prevent_sleep(data))
+            mxt_enable_irq(data);
 
 		if (data->regulator_vdd && data->regulator_avdd && data->regulator_vddio) {
 			ret = regulator_enable(data->regulator_vdd);
@@ -5028,7 +5064,6 @@ static int mxt_resume(struct device *dev)
 		if (input_dev->users)
 			mxt_start(data);
 
-		data->is_stopped = false;
 		mutex_unlock(&input_dev->mutex);
 	}
 	return 0;
@@ -5733,6 +5768,8 @@ static int mxt_probe(struct i2c_client *client,
 	INIT_WORK(&data->hover_loading_work, mxt_hover_loading_work);
 	INIT_DELAYED_WORK(&data->calibration_delayed_work,
 				mxt_calibration_delayed_work);
+    INIT_DELAYED_WORK(&data->resume_delayed_work,
+				mxt_resume_delayed_work);
 	/* Initialize i2c device */
 retry:
 	error = mxt_initialize(data);
@@ -5877,6 +5914,7 @@ static int mxt_remove(struct i2c_client *client)
 	struct mxt_data *data = i2c_get_clientdata(client);
 	const struct mxt_platform_data *pdata = data->pdata;
 
+    cancel_delayed_work(&data->resume_delayed_work);
 	sysfs_remove_bin_file(&client->dev.kobj, &data->mem_access_attr);
 	sysfs_remove_group(&client->dev.kobj, &mxt_attr_group);
 	free_irq(data->irq, data);
@@ -5922,7 +5960,7 @@ static int mxt_ts_suspend(struct device *dev)
 	struct mxt_data *data =  dev_get_drvdata(dev);
 
 	if (device_may_wakeup(dev) &&
-			mxt_prevent_sleep()) {
+			mxt_prevent_sleep(data)) {
 		dev_info(dev, "touch enable irq wake\n");
 		mxt_disable_irq(data);
 		enable_irq_wake(data->client->irq);
@@ -5936,7 +5974,7 @@ static int mxt_ts_resume(struct device *dev)
 	struct mxt_data *data =  dev_get_drvdata(dev);
 
 	if (device_may_wakeup(dev) &&
-			mxt_prevent_sleep()) {
+			mxt_prevent_sleep(data)) {
 		dev_info(dev, "touch disable irq wake\n");
 		disable_irq_wake(data->client->irq);
 		mxt_enable_irq(data);
