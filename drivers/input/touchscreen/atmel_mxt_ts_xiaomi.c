@@ -643,6 +643,7 @@ struct mxt_data {
 	bool keys_off;
 	bool screen_off;
 
+    bool is_suspend;
 	/* Slowscan parameters	*/
 	int slowscan_enabled;
 	u8 slowscan_actv_cycle_time;
@@ -694,7 +695,7 @@ struct mxt_data {
 
 static struct mxt_suspend mxt_save[] = {
 	{MXT_GEN_POWER_T7, MXT_POWER_IDLEACQINT,
-		MXT_T7_IDLEACQ_DISABLE, 135, MXT_SUSPEND_DYNAMIC, 0},
+		MXT_T7_IDLEACQ_DISABLE, 75, MXT_SUSPEND_DYNAMIC, 0},
 	{MXT_GEN_POWER_T7, MXT_POWER_ACTVACQINT,
 		MXT_T7_ACTVACQ_DISABLE, 35, MXT_SUSPEND_DYNAMIC, 0},
 	{MXT_GEN_POWER_T7, MXT_POWER_ACTV2IDLETO,
@@ -3065,7 +3066,7 @@ static int mxt_get_init_setting(struct mxt_data *data)
 		}
 	}
 
-	if (mxt_get_object(data, MXT_PROCG_NOISESUPSELFCAP_T108) != NULL) {
+	if (get_hw_version_major() == 4 && mxt_get_object(data, MXT_PROCG_NOISESUPSELFCAP_T108) != NULL) {
 		for (i = 0; i < ARRAY_SIZE(data->adcperx_normal); i++) {
 			data->adcperx_wakeup[i] = pdata->config_array[index].wake_up_self_adcx;
 			error = mxt_read_object(data, MXT_PROCG_NOISESUPSELFCAP_T108,
@@ -4373,7 +4374,7 @@ static ssize_t  mxt_wakeup_mode_store(struct device *dev,
 	unsigned long val;
 	int error;
 
-	if (pdata->config_array[index].wake_up_self_adcx == 0)
+	if (get_hw_version_major() == 4 && pdata->config_array[index].wake_up_self_adcx == 0)
 		return count;
 
 	error = strict_strtoul(buf, 0, &val);
@@ -4596,15 +4597,40 @@ static ssize_t mxt_chg_state_show(struct device *dev,
 	return count;
 }
 
+static void mxt_set_wakeup_mode(struct mxt_data *data, u8 val)
+{
+	if (data->is_suspend) {
+		if (data->wakeup_gesture_mode == 0 && val != 0) {
+			data->wakeup_gesture_mode = (u8)val;
+			mxt_enable_irq(data);
+			mxt_stop(data);
+		} else if (data->wakeup_gesture_mode != 0 && val == 0) {
+			mxt_disable_irq(data);
+			mxt_start(data);
+			data->wakeup_gesture_mode = (u8)val;
+			mxt_stop(data);
+		}
+	} else
+		data->wakeup_gesture_mode = (u8)val;
+}
+
 static void mxt_switch_mode_work(struct work_struct *work)
 {
 	struct mxt_mode_switch *ms = container_of(work, struct mxt_mode_switch, switch_mode_work);
 	struct mxt_data *data = ms->data;
+    const struct mxt_platform_data *pdata = data->pdata;
+    int index = data->current_index;
 	u8 value = ms->mode;
 
 	if (value == MXT_INPUT_EVENT_SENSITIVE_MODE_ON ||
 				value == MXT_INPUT_EVENT_SENSITIVE_MODE_OFF)
 		mxt_sensitive_mode_switch(data, (bool)(value - MXT_INPUT_EVENT_SENSITIVE_MODE_OFF));
+    else if (value == MXT_INPUT_EVENT_WAKUP_MODE_ON ||
+				value == MXT_INPUT_EVENT_WAKUP_MODE_OFF) {
+		if (pdata->config_array[index].wake_up_self_adcx != 0) {
+			mxt_set_wakeup_mode(data, value - MXT_INPUT_EVENT_WAKUP_MODE_OFF);
+		}
+    }
 	else if (value == MXT_INPUT_EVENT_STYLUS_MODE_ON ||
 				value == MXT_INPUT_EVENT_STYLUS_MODE_OFF)
 		mxt_stylus_mode_switch(data, (bool)(value - MXT_INPUT_EVENT_STYLUS_MODE_OFF));
@@ -4744,14 +4770,16 @@ static void mxt_set_gesture_wake_up(struct mxt_data *data, bool enable)
 	else
 		t108_val = data->adcperx_normal;
 
-	for (i = 0; i < sizeof(data->adcperx_normal); i++) {
-		error = mxt_write_object(data, MXT_PROCG_NOISESUPSELFCAP_T108,
-				i + 19, t108_val[i]);
-		if (error) {
-			dev_err(dev, "write to t108 byte %d failed!\n", i);
-			return;
-		}
-	}
+    if (get_hw_version_major() == 4) {
+        for (i = 0; i < sizeof(data->adcperx_normal); i++) {
+            error = mxt_write_object(data, MXT_PROCG_NOISESUPSELFCAP_T108,
+                    i + 19, t108_val[i]);
+            if (error) {
+                dev_err(dev, "write to t108 byte %d failed!\n", i);
+                return;
+            }
+        }
+    }
 
 	if (enable) {
 		error = mxt_set_clr_reg(data, MXT_PROCG_NOISESUPPRESSION_T72,
@@ -4930,15 +4958,17 @@ static int mxt_suspend(struct device *dev)
 
 		mutex_unlock(&input_dev->mutex);
 	} else {
-		mutex_lock(&input_dev->mutex);
+        data->is_suspend = true;
 
         if (!mxt_prevent_sleep(data))
 			mxt_disable_irq(data);
 
+		mutex_lock(&input_dev->mutex);
+
 		if (input_dev->users)
 			mxt_stop(data);
 
-		mxt_clear_touch_event(data);
+		mutex_unlock(&input_dev->mutex);
 
 		if (data->regulator_vdd && data->regulator_avdd && data->regulator_vddio) {
 			ret = regulator_disable(data->regulator_avdd);
@@ -4958,7 +4988,8 @@ static int mxt_suspend(struct device *dev)
 			}
 		}
 
-		mutex_unlock(&input_dev->mutex);
+        mxt_clear_touch_event(data);
+
 	}
 
 
@@ -5005,7 +5036,7 @@ static int mxt_resume(struct device *dev)
 		mutex_unlock(&input_dev->mutex);
         schedule_delayed_work(&data->resume_delayed_work, msecs_to_jiffies(100));
 	} else {
-		mutex_lock(&input_dev->mutex);
+        data->is_suspend = false;
 
         if (!mxt_prevent_sleep(data))
             mxt_enable_irq(data);
@@ -5027,6 +5058,7 @@ static int mxt_resume(struct device *dev)
 				"Atmel regulator enable for vddio failed: %d\n", ret);
 			}
 		}
+        mutex_lock(&input_dev->mutex);
 
 		if (input_dev->users)
 			mxt_start(data);
