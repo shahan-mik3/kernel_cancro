@@ -1064,7 +1064,7 @@ void mmc_free_host(struct mmc_host *host)
 	idr_remove(&mmc_host_idr, host->index);
 	spin_unlock(&mmc_host_lock);
 	wake_lock_destroy(&host->detect_wake_lock);
-	kfree(host->wlock_name);
+	mmc_latency_hist_sysfs_exit(host);
 	put_device(&host->class_dev);
 }
 
