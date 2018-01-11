@@ -192,7 +192,7 @@
 					qcom,spm-cpu-mode = "wfi";
 					qcom,latency-us = <1>;
 					qcom,ss-power = <715>;
-					qcom,energy-overhead = <17700>;
+					qcom,energy-overhead = <12700>;
 					qcom,time-overhead = <2>;
 				};
 
