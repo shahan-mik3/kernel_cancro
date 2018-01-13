@@ -3722,7 +3722,7 @@ static void binder_deferred_func(struct work_struct *work)
 
 	do {
 		trace_binder_lock(__func__);
-		mutex_lock(&context->binder_main_lock);
+		binder_lock(context, __func__);
 		trace_binder_locked(__func__);
 
 		mutex_lock(&context->binder_deferred_lock);
@@ -3753,7 +3753,7 @@ static void binder_deferred_func(struct work_struct *work)
 			binder_deferred_release(proc); /* frees proc */
 
 		trace_binder_unlock(__func__);
-		mutex_unlock(&context->binder_main_lock);
+		binder_unlock(context, __func__);
 		if (files)
 			put_files_struct(files);
 	} while (proc);
