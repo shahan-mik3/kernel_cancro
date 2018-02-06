@@ -4178,7 +4178,7 @@ static void mxt_update_noise_mode(struct mxt_data *data)
         dev_dbg(dev, "Initial value of cal T72 %d\n", noise_cal);
     }
 
-    if (data->sensitive_mode || data->charger_connected) {
+    if ((get_hw_version_major() == 3 && data->sensitive_mode) || data->charger_connected) {
 
         mxt_set_clr_reg(data, MXT_PROCG_NOISESUPPRESSION_T72,
                 MXT_NOISESUP_CTRL, MXT_NOICTRL_ENABLE, 0);
@@ -4332,7 +4332,9 @@ static int mxt_sensitive_mode_switch(struct mxt_data *data, bool mode_on)
 	}
 
 	data->sensitive_mode = (u8)mode_on;
-    mxt_update_noise_mode(data);
+    if (get_hw_version_major == 3) {
+        mxt_update_noise_mode(data);
+    }
 
 	return error;
 }
