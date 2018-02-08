@@ -1,7 +1,7 @@
 DEFCONFIG=cyanogen_cancro_defconfig
 OBJ_DIR=`pwd`/.obj
 ANYKERNEL_DIR=${HOME}/AnyKernel2
-TOOLCHAIN=${HOME}/toolchain/arm-eabi-4.8/bin/arm-eabi-
+TOOLCHAIN=${HOME}/toolchain/arm-linux-androideabi-4.9/bin/arm-linux-androidkernel-
 WEB_SERVER_ROOT=/srv/http/
 DATE=$(date +"%m-%d-%y")
 
